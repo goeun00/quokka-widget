@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>Quokka Jira Dock</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<video id="vid" src="assets/quokka.mp4"  autoplay loop muted playsinline style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px"></video>
+<video id="vid2" src="assets/rabit.mp4" autoplay loop muted playsinline style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px"></video>
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" id="ctxSettings">⚙ 설정</div>
+  <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
+</div>
+
+<div class="w" id="w">
+  <div class="panel" id="panel">
+    <div class="summary">
+      <div class="stop">
+        <span class="stitle" id="ptitle">Jira Issues</span>
+        <button class="hb button-mode" id="themeBtn" type="button" aria-label="라이트 모드 전환"></button>
+        <button class="hb button-re" id="rbtn" type="button"></button>
+        <button class="hb button-setting" id="settingsBtn" type="button"></button>
+      </div>
+      <div class="srow" id="statRow">
+        <button class="sc on" data-filter="todo" type="button"><span class="sl">To Do</span><span class="sn" id="n-todo">0</span></button>
+        <button class="sc" data-filter="wip" type="button"><span class="sl">In Progress</span><span class="sn" id="n-wip">0</span></button>
+        <button class="sc" data-filter="done" type="button"><span class="sl">Done</span><span class="sn" id="n-done">0</span></button>
+        <button class="pin-card" id="pinCard" type="button">
+          <div class="pin-label">PIN</div>
+          <span class="pin-cnt" id="n-pin">0</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="proj-bar" id="projBar" hidden></div>
+
+    <section id="issueView">
+      <div class="state loading" id="loadingState">불러오는 중...</div>
+      <div class="state error" id="errorState" hidden></div>
+      <div class="state empty" id="emptyState" hidden>이슈가 없어요 🎉</div>
+      <div class="il" id="issueList" hidden></div>
+    </section>
+
+    <div class="search-wrap" id="searchWrap">
+      <span class="search-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+      <input class="search-input" id="searchInput" type="text" placeholder="이슈 검색..." autocomplete="off" spellcheck="false"/>
+      <div class="search-clear" id="searchClear">✕</div>
+    </div>
+
+    <section id="settingsView" hidden>
+      <div class="sbody">
+        <div class="srow2"><label class="slb" for="iUrl">Jira URL</label><input class="si" id="iUrl" type="text" placeholder="https://yourcompany.atlassian.net" autocomplete="off" spellcheck="false"/></div>
+        <div class="srow2"><label class="slb" for="iPat">Personal Access Token</label><input class="si" id="iPat" type="password" placeholder="PAT 입력" autocomplete="off"/></div>
+        <div class="srow2">
+          <label class="slb" for="iDays">Done 이슈 보관 기간</label>
+          <select class="si" id="iDays">
+            <option value="30">30일</option>
+            <option value="60" selected>60일</option>
+          </select>
+        </div>
+        <button class="sv2" id="saveSettingsBtn" type="button">저장하고 불러오기</button>
+        <div class="sh">Jira → 프로필 → 개인 액세스 토큰</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="dock">
+    <button class="qb" id="dockBtn" type="button" aria-label="패널 열기">
+          <div class="bbl" id="bbl"></div>
+      <canvas id="c" class="qc"></canvas>
+    </button>
+    <button class="qb" id="dockBtn" type="button" aria-label="패널 열기">
+      <canvas id="c2" class="qc2"></canvas>
+    </button>
+  </div>
+</div>
+
+<template id="projTagTemplate">
+  <button class="ptag" type="button"></button>
+</template>
+
+<template id="issueGroupTemplate">
+  <section class="issue-group">
+    <div class="gh">
+      <span class="group-label"></span>
+      <div class="gl"></div>
+      <span class="group-count"></span>
+    </div>
+    <div class="group-items"></div>
+  </section>
+</template>
+
+<template id="issueCardTemplate">
+  <article class="ic">
+    <div class="pst"></div>
+    <div class="ib">
+      <div class="ik-row">
+        <button class="ik" type="button"></button>
+      </div>
+      <div class="it-row">
+        <span class="it"></span>
+      </div>
+      <div class="sb-row">
+        <span class="sb"></span>
+        <span class="type-badge"></span>
+      </div>
+      <div class="box_memo">
+        <!-- <span class="memo-ico" style="display:none"></span> -->
+        <span class="memo-inline-text" style="display:none"></span>
+        <div class="chips-wrap" style="display:none">
+          <div class="chips"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ic-meta">
+      <div class="ic-top">
+        <button class="pin-btn" type="button" aria-label="핀"></button>
+      </div>
+      <div class="ic-bot">
+        <span class="idate"></span>
+      </div>
+    </div>
+  </article>
+</template>
+
+<template id="memoDropTemplate">
+  <div class="memo-drop">
+    <div class="memo-drop-inner">
+      <div class="memo-read">
+        <span class="memo-read-empty">메모 없음</span>
+        <button class="memo-edit-trigger" type="button"></button>
+      </div>
+      <div class="memo-edit-area">
+        <textarea class="memo-ta" placeholder="메모를 입력하세요... (URL 입력 시 자동 링크)"></textarea>
+        <div class="memo-edit-btns">
+          <button class="me-btn memo-cancel" type="button">취소</button>
+          <button class="me-btn ok memo-ok" type="button">확인</button>
+        </div>
+      </div>
+      <div class="link-lbl">link</div>
+      <div class="link-list"></div>
+      <div class="link-add-row">
+        <input class="link-input" type="text" placeholder="URL 붙여넣기..." autocomplete="off" spellcheck="false"/>
+        <button class="link-add-btn" type="button">+ add</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="linkItemTemplate">
+  <div class="link-item">
+    <div class="link-read">
+      <button class="link-ico-btn" type="button"></button>
+      <div class="link-info">
+        <span class="link-name-text"></span>
+        <span class="link-url-text"></span>
+      </div>
+      <div class="link-action-btns">
+        <button class="la-btn la-edit" type="button"></button>
+        <button class="la-btn del la-del" type="button"></button>
+      </div>
+    </div>
+    <div class="link-edit">
+      <div class="le-row">
+        <span class="le-lbl">이름</span>
+        <input class="le-input le-name" type="text" placeholder="링크 이름" autocomplete="off"/>
+      </div>
+      <div class="le-row">
+        <span class="le-lbl">URL</span>
+        <input class="le-input le-url" type="text" placeholder="https://..." autocomplete="off"/>
+      </div>
+      <div class="le-btns">
+        <button class="le-btn le-cancel" type="button">취소</button>
+        <button class="le-btn ok le-ok" type="button">확인</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="iconOptionTemplate">
+  <div class="ico-opt"></div>
+</template>
+
+<script>
+/* ── WebGL ── */
+/* ── WebGL ── */
+function initQuokka(canvasId, videoId, speed=1.0) {
+  const vid=document.getElementById(videoId),c=document.getElementById(canvasId)
+  const gl=c.getContext('webgl',{premultipliedAlpha:false,alpha:true})
+  c.width=180;c.height=245
+  const vsrc=`attribute vec2 p;attribute vec2 u;varying vec2 v;void main(){gl_Position=vec4(p,0,1);v=u;}`
+  const fsrc=`precision highp float;uniform sampler2D t;varying vec2 v;void main(){vec4 c=texture2D(t,v);float r=c.r,g=c.g,b=c.b;float cb=g-max(r,b);float spill=max(0.,cb-0.05);vec3 col=vec3(r+spill*0.5,g-spill,b+spill*0.5);float alpha=1.-smoothstep(0.14,0.42,cb);alpha=clamp(alpha,0.,1.);if(alpha<0.01){gl_FragColor=vec4(0.);}else{gl_FragColor=vec4(col*alpha,alpha);}}`
+  function mkSh(tp,src){const s=gl.createShader(tp);gl.shaderSource(s,src);gl.compileShader(s);return s}
+  const pr=gl.createProgram()
+  gl.attachShader(pr,mkSh(gl.VERTEX_SHADER,vsrc));gl.attachShader(pr,mkSh(gl.FRAGMENT_SHADER,fsrc))
+  gl.linkProgram(pr);gl.useProgram(pr)
+  function vbuf(d){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,d,gl.STATIC_DRAW);return b}
+  const pb=vbuf(new Float32Array([-1,-1,1,-1,-1,1,1,1])),ub=vbuf(new Float32Array([0,1,1,1,0,0,1,0]))
+  gl.bindBuffer(gl.ARRAY_BUFFER,pb);const pl=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(pl);gl.vertexAttribPointer(pl,2,gl.FLOAT,false,0,0)
+  gl.bindBuffer(gl.ARRAY_BUFFER,ub);const ul=gl.getAttribLocation(pr,'u');gl.enableVertexAttribArray(ul);gl.vertexAttribPointer(ul,2,gl.FLOAT,false,0,0)
+  const tx=gl.createTexture()
+  gl.bindTexture(gl.TEXTURE_2D,tx);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR)
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA)
+  function updateVideoRatio(){
+    if(!vid.videoWidth||!vid.videoHeight)return
+    const ca=c.width/c.height,va=vid.videoWidth/vid.videoHeight
+    let u0=0,u1=1,v0=0,v1=1
+    if(va>ca){const s=ca/va;u0=(1-s)/2;u1=1-u0}else{const s=va/ca;v0=(1-s)/2;v1=1-v0}
+    gl.bindBuffer(gl.ARRAY_BUFFER,ub);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([u0,v1,u1,v1,u0,v0,u1,v0]),gl.STATIC_DRAW)
+  }
+  vid.addEventListener('loadedmetadata',updateVideoRatio)
+  if(vid.readyState>=1)updateVideoRatio()
+  function draw(){
+    if(vid.readyState>=2){gl.bindTexture(gl.TEXTURE_2D,tx);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,vid);gl.viewport(0,0,c.width,c.height);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
+    if('requestVideoFrameCallback'in vid)vid.requestVideoFrameCallback(draw);else requestAnimationFrame(draw)
+  }
+  requestAnimationFrame(draw)
+  vid.addEventListener('playing',()=>{if('requestVideoFrameCallback'in vid)vid.requestVideoFrameCallback(draw)})
+  vid.playbackRate = speed  
+  vid.play().catch(()=>{})
+}
+
+initQuokka('c', 'vid', 0.95) 
+initQuokka('c2', 'vid2', 0.8) 
+ 
+/* ── 클릭 통과 ── */
+document.addEventListener('mousemove',e=>{
+  const el=document.elementFromPoint(e.clientX,e.clientY)
+  const isInteractive=el&&(
+    el.closest('.panel')||
+    el.closest('.dock')||
+    el.closest('.bbl')||
+    el.closest('.ctx-menu')
+  )
+  window.api?.setIgnoreMouse(!isInteractive)
+})
+ 
+/* ── 우클릭 ── */
+const ctxMenu=document.getElementById('ctxMenu')
+document.getElementById('dockBtn').addEventListener('contextmenu',e=>{
+  e.preventDefault()
+  ctxMenu.style.left=e.clientX+'px';ctxMenu.style.top=Math.min(e.clientY,window.innerHeight-90)+'px'
+  ctxMenu.classList.add('show')
+})
+document.addEventListener('click',e=>{if(!ctxMenu.contains(e.target))ctxMenu.classList.remove('show')})
+document.getElementById('ctxSettings').addEventListener('click',()=>{ctxMenu.classList.remove('show');if(!open)togglePanel();setTimeout(()=>{if(!isS)toggleSettings()},350)})
+document.getElementById('ctxQuit').addEventListener('click',()=>window.api?.quit())
+ 
+/* ── 아이콘 헬퍼 ── */
+function mkIco(iClass,sizeClass='ico-sm'){
+  const s=document.createElement('span');s.className=`ico ${sizeClass} ${iClass}`;return s
+}
+/* ── 링크 아이콘 ── */
+const LINK_ICONS=[
+  {id:'icoFigma',  cls:'i-ico-figma',  match:['figma']},
+  {id:'icoDoc',    cls:'i-ico-doc',    match:['notion','docs.google','confluence','atlassian','drive.google']},
+  {id:'icoGithub', cls:'i-ico-github', match:['github','gitlab']},
+  {id:'icoDesktop',  cls:'i-ico-desktop',  match:['desktop','pc']},
+  {id:'icoMobile',  cls:'i-ico-mobile',  match:['mobile']},
+  {id:'icoFile',  cls:'i-ico-file',  match:['file://']},
+  {id:'icoLink',   cls:'i-ico-link',   match:[]},
+]
+function detectIcon(url){
+  const u=(url||'').toLowerCase()
+  return LINK_ICONS.find(i=>i.match.some(m=>u.includes(m)))||LINK_ICONS[4]
+}
+function mkPicker(selectedId,onPick){
+  const wrap=document.createElement('div');wrap.className='ico-picker'
+  LINK_ICONS.forEach(ico=>{
+    const opt=mkIconOption()
+    opt.className='ico-opt'+(ico.id===selectedId?' selected':'')
+    opt.appendChild(mkIco(ico.cls,'ico-md'))
+    opt.addEventListener('click',e=>{e.stopPropagation();onPick(ico.id);wrap.classList.remove('show')})
+    wrap.appendChild(opt)
+  })
+  return wrap
+}
+function linkLabel(url){
+  try{
+    const u=new URL(url)
+    if(u.protocol==='file:'){
+      const parts=u.pathname.split('/')
+      return decodeURIComponent(parts[parts.length-1])||url
+    }
+    return u.hostname.replace('www.','')
+  }catch{return url}
+}
+ 
+/* ── 이슈 타입 ── */
+const TYPE_MAP={
+  Bug:    {cls:'ityp-bug',   ico:'i-type-bug'},
+  Task:   {cls:'ityp-task',  ico:'i-type-task'},
+  Story:  {cls:'ityp-story', ico:'i-type-story'},
+  Epic:   {cls:'ityp-epic',  ico:'i-type-epic'},
+  Subtask:{cls:'ityp-sub',   ico:'i-type-subtask'},
+}
+ 
+/* ── 메모 HTML 변환 ── */
+function memoToHtml(text){
+  if(!text)return''
+  return text.split('\n').map(line=>{
+    return line.replace(/(https?:\/\/[^\s]+)/g,url=>`<a data-url="${url}">${url}</a>`)
+  }).join('<br>')
+}
+ 
+/* ── DOM 팩토리 ── */
+function getTpl(id){return document.getElementById(id).content.firstElementChild.cloneNode(true)}
+function mkProjTag(){return getTpl('projTagTemplate')}
+function mkGroupEl(){return getTpl('issueGroupTemplate')}
+function mkIssueEl(){return getTpl('issueCardTemplate')}
+function mkMemoDrop(){return getTpl('memoDropTemplate')}
+function mkLinkItem(){return getTpl('linkItemTemplate')}
+function mkIconOption(){return getTpl('iconOptionTemplate')}
+ 
+/* ── 전역 상태 ── */
+let open=false,curF='todo',curP='all',isS=false,issues=[],memos={},links={},pins=new Set(),q=''
+ 
+// 현재 열린 드롭다운 — key와 DOM 참조 직접 추적
+let activeDropEl = null
+ 
+const LABEL={todo:'To Do',wip:'In Progress',done:'Done'}
+const msgs=['이슈 목록이에요! 📋','파이팅! 💪','PR 리뷰 잊지 마세요 👀','커피 한잔 해요~ ☕']
+let mi=0
+ 
+function showB(msg,dur=2800){const b=document.getElementById('bbl');b.textContent=msg;b.classList.add('show');clearTimeout(window._bt);window._bt=setTimeout(()=>b.classList.remove('show'),dur)}
+function fmt(d){if(!d)return'';const diff=Math.floor((new Date()-new Date(d))/86400000);return diff===0?'오늘':diff===1?'어제':diff<7?`${diff}일 전`:diff<30?`${Math.floor(diff/7)}주 전`:`${Math.floor(diff/30)}달 전`}
+function hl(text){if(!q)return text;const re=new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi');return String(text||'').replace(re,'<mark>$1</mark>')}
+function projKey(k){return String(k||'').split('-')[0]}
+ 
+function catOf(issue){
+  if(issue.statusCategory==='done')return'done'
+  const n=String(issue.status||'').toLowerCase()
+  if(n.includes('progress')||n.includes('wip')||n.includes('testing')||n.includes('review')||n.includes('doing'))return'wip'
+  return'todo'
+}
+ 
+ 
+function getFilteredIssues(){
+  let list=curP==='all'?issues:issues.filter(i=>projKey(i.key)===curP)
+  if(curF==='pin')list=list.filter(i=>pins.has(i.key))
+  else if(curF!=='all')list=list.filter(i=>catOf(i)===curF)
+  return list
+}
+ 
+function getProjects(){
+  const base=curF==='pin'
+    ?issues.filter(i=>pins.has(i.key))
+    :curF==='all'
+      ?issues
+      :issues.filter(i=>catOf(i)===curF)
+  return[...new Set(base.map(i=>projKey(i.key)).filter(Boolean))]
+}
+ 
+function setListState(type,msg=''){
+  document.getElementById('loadingState').hidden=type!=='loading'
+  document.getElementById('errorState').hidden=type!=='error'
+  document.getElementById('emptyState').hidden=type!=='empty'
+  document.getElementById('issueList').hidden=type!=='list'
+  if(type==='error')document.getElementById('errorState').textContent=msg
+}
+ 
+function togglePanel(){
+  open=!open
+  document.getElementById('panel').classList.toggle('open',open)
+  if(open){showB(msgs[mi++%msgs.length]);loadIssues()}
+}
+ 
+function setFilter(cat){
+  curF=cat
+  curP='all'
+  document.body.classList.toggle('pin-mode', cat === 'pin');
+  document.querySelectorAll('.sc,.pin-card').forEach(b=>b.classList.remove('on'))
+  if(cat==='pin') document.getElementById('pinCard').classList.add('on')
+  else document.querySelector(`.sc[data-filter="${cat}"]`)?.classList.add('on')
+  renderProjBar()
+  render()
+}
+ 
+function setProj(p){curP=p;renderProjBar();render()}
+ 
+function onSearch(val){
+  q=val.trim().toLowerCase()
+  document.getElementById('searchClear').classList.toggle('vis',!!q)
+  document.getElementById('statRow').classList.toggle('searching', !!q)
+  render()
+}
+function clearSearch(){
+  q='';document.getElementById('searchInput').value=''
+  document.getElementById('searchClear').classList.remove('vis')
+  document.getElementById('statRow').classList.remove('searching')
+  render()
+}
+ 
+function renderProjBar(){
+  const ps=getProjects(),bar=document.getElementById('projBar')
+  bar.innerHTML=''
+  if(isS||ps.length<=1){bar.hidden=true;return}
+  bar.hidden=false
+  const mk=(label,active,onClick)=>{
+    const t=mkProjTag();t.textContent=label;t.classList.toggle('on',active)
+    t.addEventListener('click',onClick);bar.appendChild(t)
+  }
+  mk('all',curP==='all',()=>setProj('all'))
+  ps.forEach(p=>mk(p,curP===p,()=>setProj(p)))
+}
+ 
+/* ── 인라인 미리보기 갱신 ── */
+function refreshInline(key,node){
+  const memo=memos[key]||'',kLinks=links[key]||[],hasMemo=!!(memo||kLinks.length)
+  // const memoIco=node.querySelector('.memo-ico')
+  // if(hasMemo){
+  //   memoIco.style.display='inline-flex'
+  //   if(!memoIco.hasChildNodes())memoIco.appendChild(mkIco('i-memo','ico-sm'))
+  // }else{
+  //   memoIco.style.display='none'
+  // }
+  const txtEl=node.querySelector('.memo-inline-text')
+  const firstLine=memo?memo.split('\n')[0]:''
+  txtEl.textContent=firstLine;txtEl.style.display=firstLine?'inline-block':'none'
+  const chipsWrap=node.querySelector('.chips-wrap'),chipsEl=node.querySelector('.chips')
+  chipsEl.innerHTML=''
+  if(kLinks.length){
+    chipsWrap.style.display='flex'
+    kLinks.forEach(l=>{
+      const icoInfo=LINK_ICONS.find(i=>i.id===(l.iconId||detectIcon(l.url).id))||LINK_ICONS[4]
+      const chip=document.createElement('div');chip.className='chip'
+      chip.appendChild(mkIco(icoInfo.cls,'ico-sm'))
+      chip.appendChild(document.createTextNode('\u00a0'+(l.label||linkLabel(l.url))))
+      chip.addEventListener('click',e=>{e.stopPropagation();window.api?.openUrl(l.url)})
+      chipsEl.appendChild(chip)
+    })
+  }else{
+    chipsWrap.style.display='none'
+  }
+}
+ 
+/* ── 카드 생성 ── */
+function createCard(issue){
+  const node=mkIssueEl()
+  const cat=catOf(issue),pri=String(issue.priority||'').toLowerCase()
+  node.querySelector('.pst').classList.add(pri==='highest'||pri==='high'?'ph2':pri==='low'||pri==='lowest'?'pl2':'pm2')
+ 
+  const ikBtn=node.querySelector('.ik')
+  ikBtn.innerHTML=hl(issue.key||'')
+  ikBtn.appendChild(mkIco('i-extlink','ico-sm'))
+  ikBtn.addEventListener('click',e=>{e.stopPropagation();window.api?.openUrl(issue.url)})
+ 
+  node.querySelector('.it').innerHTML=hl(issue.summary||'')
+ 
+  const sbEl=node.querySelector('.sb')
+  sbEl.classList.add('sb-'+cat)
+  sbEl.textContent=issue.status||LABEL[cat]||'To Do'
+ 
+  const ti=TYPE_MAP[issue.issueType]||TYPE_MAP['Task']
+  const tbEl=node.querySelector('.type-badge')
+  const tbCls={'ityp-bug':'tb-bug','ityp-task':'tb-task','ityp-story':'tb-story','ityp-epic':'tb-epic','ityp-sub':'tb-sub'}
+  tbEl.classList.add(tbCls[ti.cls]||'tb-task')
+  tbEl.appendChild(mkIco(ti.ico,'ico-sm'))
+  tbEl.appendChild(document.createTextNode(issue.issueType||'Task'))
+ 
+  node.querySelector('.idate').textContent=fmt(issue.updated)
+ 
+  const pinBtn=node.querySelector('.pin-btn')
+  pinBtn.appendChild(mkIco('i-pin','ico-sm'))
+  if(pins.has(issue.key))pinBtn.classList.add('pinned')
+  pinBtn.addEventListener('click',e=>{
+    e.stopPropagation()
+    pins.has(issue.key)?pins.delete(issue.key):pins.add(issue.key)
+    pinBtn.classList.toggle('pinned',pins.has(issue.key))
+    document.getElementById('n-pin').textContent=pins.size
+    window.api?.savePins?.([...pins])
+    if(curF==='pin')render()
+  })
+ 
+  const drop=mkMemoDrop()
+ 
+  function syncDrop(){
+    const memo=memos[issue.key]||''
+    const readEl=drop.querySelector('.memo-read')
+    const readText=readEl.querySelector('span')
+    drop.querySelector('.memo-ta').value=memo
+    if(memo){readText.className='memo-read-text';readText.innerHTML=memoToHtml(memo)}
+    else{readText.className='memo-read-empty';readText.textContent='메모 없음'}
+    // a태그 이벤트
+    drop.querySelectorAll('.memo-read-text a').forEach(a=>{
+      a.addEventListener('click',e=>{e.stopPropagation();window.api?.openUrl(a.dataset.url||a.textContent)})
+    })
+    renderLinkList()
+  }
+ 
+  function renderLinkList(){
+    const ll=drop.querySelector('.link-list');ll.innerHTML=''
+    ;(links[issue.key]||[]).forEach((l,idx)=>{
+      const item=mkLinkItem()
+      item.querySelector('.link-name-text').textContent=l.label||linkLabel(l.url)
+      item.querySelector('.link-url-text').textContent=l.url
+      item.querySelector('.le-name').value=l.label||linkLabel(l.url)
+      item.querySelector('.le-url').value=l.url
+      const icoBtn=item.querySelector('.link-ico-btn')
+      const icoInfo=LINK_ICONS.find(i=>i.id===(l.iconId||detectIcon(l.url).id))||LINK_ICONS[4]
+      icoBtn.innerHTML=''
+      icoBtn.appendChild(mkIco(icoInfo.cls,'ico-md'))
+      const picker=mkPicker(l.iconId||detectIcon(l.url).id,(iconId)=>{l.iconId=iconId;window.api?.saveLinks?.(links);renderLinkList();refreshInline(issue.key,node)})
+      icoBtn.appendChild(picker)
+      icoBtn.addEventListener('click',e=>{e.stopPropagation();picker.classList.toggle('show')})
+      item.querySelector('.la-edit').appendChild(mkIco('i-edit','ico-sm'))
+      item.querySelector('.la-edit').addEventListener('click',e=>{e.stopPropagation();item.querySelector('.link-edit').classList.toggle('show')})
+      item.querySelector('.la-del').appendChild(mkIco('i-del','ico-sm'))
+      item.querySelector('.la-del').addEventListener('click',e=>{
+        e.stopPropagation()
+        if(!links[issue.key])return
+        links[issue.key].splice(idx,1)
+        if(!links[issue.key].length)delete links[issue.key]
+        window.api?.saveLinks?.(links)
+        renderLinkList();refreshInline(issue.key,node)
+      })
+      item.querySelector('.le-cancel').addEventListener('click',e=>{e.stopPropagation();item.querySelector('.link-edit').classList.remove('show')})
+      item.querySelector('.le-ok').addEventListener('click',e=>{
+        e.stopPropagation()
+        l.label=item.querySelector('.le-name').value.trim()
+        l.url=item.querySelector('.le-url').value.trim()
+        window.api?.saveLinks?.(links)
+        item.querySelector('.link-edit').classList.remove('show')
+        renderLinkList()
+        refreshInline(issue.key,node)
+      })
+      item.querySelectorAll('.le-input').forEach(i=>i.addEventListener('click',e=>e.stopPropagation()))
+      ll.appendChild(item)
+    })
+  }
+ 
+  // 메모 edit trigger 아이콘
+  drop.querySelector('.memo-edit-trigger').appendChild(mkIco('i-edit','ico-sm'))
+ 
+  drop.querySelector('.memo-edit-trigger').addEventListener('click',e=>{
+    e.stopPropagation()
+    // 열 때 항상 저장된 원본값으로 textarea 초기화
+    drop.querySelector('.memo-ta').value=memos[issue.key]||''
+    drop.querySelector('.memo-read').style.display='none'
+    drop.querySelector('.memo-edit-area').classList.add('show')
+    drop.querySelector('.memo-ta').focus()
+  })
+  drop.querySelector('.memo-cancel').addEventListener('click',e=>{
+    e.stopPropagation()
+    // 취소 시 textarea 원본값으로 복원
+    drop.querySelector('.memo-ta').value=memos[issue.key]||''
+    drop.querySelector('.memo-read').style.display=''
+    drop.querySelector('.memo-edit-area').classList.remove('show')
+  })
+  drop.querySelector('.memo-ok').addEventListener('click',e=>{
+    e.stopPropagation()
+    const val=drop.querySelector('.memo-ta').value.trim()
+    // 즉시 저장
+    if(val)memos[issue.key]=val;else delete memos[issue.key]
+    window.api?.saveMemos(memos)
+    const readEl=drop.querySelector('.memo-read'),span=readEl.querySelector('span')
+    span.className=val?'memo-read-text':'memo-read-empty'
+    span.innerHTML=val?memoToHtml(val):'메모 없음'
+    span.querySelectorAll('a').forEach(a=>{
+      a.addEventListener('click',ev=>{ev.stopPropagation();window.api?.openUrl(a.dataset.url||a.textContent)})
+    })
+    readEl.style.display=''
+    drop.querySelector('.memo-edit-area').classList.remove('show')
+    refreshInline(issue.key,node)
+  })
+  const addInput=drop.querySelector('.link-input'),addBtn=drop.querySelector('.link-add-btn')
+  const doAdd=()=>{
+    let url=addInput.value.trim();if(!url)return
+    if(!links[issue.key])links[issue.key]=[]
+    links[issue.key].push({url,label:'',iconId:detectIcon(url).id})
+    addInput.value=''
+    window.api?.saveLinks?.(links)
+    renderLinkList()
+    refreshInline(issue.key,node)
+    setTimeout(()=>drop.querySelector('.link-input')?.focus(),50)
+  }
+  addBtn.addEventListener('click',e=>{e.stopPropagation();doAdd()})
+  addInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();doAdd()}})
+  addInput.addEventListener('click',e=>e.stopPropagation())
+  drop.addEventListener('click',e=>{
+    if(!e.target.closest('.link-ico-btn')&&!e.target.closest('.ico-picker'))
+      drop.querySelectorAll('.ico-picker').forEach(p=>p.classList.remove('show'))
+  })
+ 
+  syncDrop()
+  refreshInline(issue.key,node)
+ 
+  // 카드 클릭 → 드롭다운 토글
+  node.addEventListener('click',e=>{
+    if(e.target.closest('.ik')||e.target.closest('.pin-btn'))return
+    const isOpen=drop.classList.contains('open')
+    // 다른 드롭다운 닫기
+    if(activeDropEl&&activeDropEl!==drop){
+      activeDropEl.classList.remove('open')
+    }
+    if(isOpen){
+      drop.classList.remove('open')
+      activeDropEl = null
+    }else{
+      // 열기 전 최신 데이터로 동기화
+      syncDrop()
+      drop.classList.add('open')
+      activeDropEl=drop;activeDropKey=issue.key
+    }
+  })
+ 
+  const wrapper=document.createElement('div');wrapper.appendChild(node);wrapper.appendChild(drop)
+  return wrapper
+}
+ 
+function render(){
+  document.getElementById('n-todo').textContent=issues.filter(i=>catOf(i)==='todo').length
+  document.getElementById('n-wip').textContent=issues.filter(i=>catOf(i)==='wip').length
+  document.getElementById('n-done').textContent=issues.filter(i=>catOf(i)==='done').length
+  document.getElementById('n-pin').textContent=pins.size
+  activeDropEl = null
+ 
+  const il=document.getElementById('issueList');il.innerHTML='';let any=false
+ 
+  // 검색 중: 상태 필터 무시, 전체에서 검색
+  if(q){
+    let list=curP==='all'?issues:issues.filter(i=>projKey(i.key)===curP)
+    list=list.filter(i=>(i.key||'').toLowerCase().includes(q)||(i.summary||'').toLowerCase().includes(q))
+    if(!list.length){
+      il.innerHTML=`<div class="no-result"><div class="no-result-icon">🔍</div>"${q}" 검색 결과가 없어요</div>`
+      setListState('list');return
+    }
+    const groups=[['To Do',list.filter(i=>catOf(i)==='todo')],['In Progress',list.filter(i=>catOf(i)==='wip')],['Done',list.filter(i=>catOf(i)==='done')]]
+    groups.forEach(([label,items])=>{
+      if(!items.length)return;any=true
+      const g=mkGroupEl()
+      g.querySelector('.group-label').textContent=label
+      g.querySelector('.group-count').textContent=items.length
+      items.forEach(i=>g.querySelector('.group-items').appendChild(createCard(i)))
+      il.appendChild(g)
+    })
+    if(any)setListState('list')
+    return
+  }
+ 
+  // 일반 필터 모드 — getFilteredIssues 활용
+  const list=getFilteredIssues()
+ 
+  if(curF==='pin'){
+    if(list.length){
+      any=true
+      const g=mkGroupEl()
+      g.querySelector('.gh').classList.add('gh-pin')
+      g.querySelector('.group-label').textContent='Pin'
+      g.querySelector('.group-count').textContent=list.length
+      list.forEach(i=>g.querySelector('.group-items').appendChild(createCard(i)))
+      il.appendChild(g)
+    }
+  }else{
+    // todo/wip/done 각각 단일 그룹으로
+    const label=LABEL[curF]||curF
+    if(list.length){
+      any=true
+      const g=mkGroupEl()
+      g.querySelector('.group-label').textContent=label
+      g.querySelector('.group-count').textContent=list.length
+      list.forEach(i=>g.querySelector('.group-items').appendChild(createCard(i)))
+      il.appendChild(g)
+    }
+  }
+ 
+  if(!any)setListState('empty');else setListState('list')
+}
+ 
+const themeBtn = document.getElementById('themeBtn');
+ 
+function applyTheme(mode) {
+  document.body.classList.toggle('light-mode', mode === 'light');
+  localStorage.setItem('theme', mode);
+  if (themeBtn) {
+    themeBtn.setAttribute(
+      'aria-label',
+      mode === 'light' ? '다크 모드 전환' : '라이트 모드 전환'
+    );
+  }
+}
+function toggleTheme() {
+  const isLight = document.body.classList.contains('light-mode');
+  applyTheme(isLight ? 'dark' : 'light');
+}
+themeBtn?.addEventListener('click', toggleTheme);
+const savedTheme = localStorage.getItem('theme');
+applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+ 
+async function loadIssues(){
+  if(isS)return;setListState('loading')
+  try{issues=await window.api.fetchIssues();renderProjBar();render()}
+  catch(e){const m=String(e?.message||'불러오기 실패');setListState('error',m.includes('설정')?'⚙️ 설정에서 Jira URL과 PAT를 입력해주세요!':`❌ ${m}`)}
+}
+ 
+async function toggleSettings(){
+  isS=!isS
+  document.getElementById('issueView').hidden=isS
+  document.getElementById('settingsView').hidden=!isS
+  document.getElementById('statRow').hidden=isS
+  document.getElementById('rbtn').hidden=isS
+  document.getElementById('searchWrap').hidden=isS
+  document.getElementById('ptitle').textContent=isS?'Setting':'Jira Issues'
+  // 설정창이면 뒤로가기 아이콘, 아니면 설정 아이콘
+  const sb=document.getElementById('settingsBtn')
+  sb.classList.toggle('button-back', isS)
+  sb.classList.toggle('button-setting', !isS)
+  renderProjBar()
+  if(isS&&window.api?.getSettings){
+    const s=await window.api.getSettings()
+    document.getElementById('iUrl').value=s.baseUrl||''
+    document.getElementById('iPat').value=s.pat||''
+    const daysEl=document.getElementById('iDays')
+    daysEl.value=String(s.doneDays||60)
+  }
+}
+async function saveSettings(){
+  const baseUrl=document.getElementById('iUrl').value.trim().replace(/\/$/,''),pat=document.getElementById('iPat').value.trim()
+  const doneDays=parseInt(document.getElementById('iDays').value)||60
+  if(!baseUrl||!pat){showB('URL과 PAT를 모두 입력해주세요!');return}
+  await window.api?.saveSettings({baseUrl,pat,doneDays});showB('설정 저장! 이슈 불러올게요 📋')
+  await toggleSettings();loadIssues()
+}
+ 
+document.getElementById('dockBtn').addEventListener('click',togglePanel)
+document.getElementById('rbtn').addEventListener('click',loadIssues)
+document.getElementById('settingsBtn').addEventListener('click',toggleSettings)
+document.getElementById('saveSettingsBtn').addEventListener('click',saveSettings)
+document.getElementById('pinCard').addEventListener('click',()=>setFilter('pin'))
+document.querySelectorAll('.sc').forEach(b=>b.addEventListener('click',()=>{
+  setFilter(b.dataset.filter)
+}))
+document.getElementById('searchInput').addEventListener('input',e=>onSearch(e.target.value))
+document.getElementById('searchClear').addEventListener('click',clearSearch)
+document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Escape')clearSearch()})
+ 
+async function init(){
+  if(window.api){
+    try{
+      const s=await window.api.getSettings(),m=await window.api.getMemos(),l=await window.api.getLinks?.(),p=await window.api.getPins?.()
+      if(m)memos=m;if(l)links=l;if(p)pins=new Set(p)
+      setTimeout(()=>showB(s.baseUrl&&s.pat?'안녕! 클릭하면 이슈를 볼 수 있어요 🐾':'⚙ 설정에서 Jira URL과 PAT를 입력해주세요!',3500),1200)
+    }catch(e){console.error(e)}
+  }
+}
+init()
+setInterval(()=>{if(!open)showB(msgs[mi++%msgs.length])},7000)
+</script>
+</body>
+</html>
