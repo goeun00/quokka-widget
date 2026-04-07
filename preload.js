@@ -12,4 +12,22 @@ window.api = {
   openUrl: (u) => ipcRenderer.send("open-url", u),
   quit: () => ipcRenderer.send("quit-app"),
   setIgnoreMouse: (v) => ipcRenderer.send("set-ignore-mouse", v),
+  moveWindow: (pos) => ipcRenderer.send("move-window", pos),
+  getGHSettings: () => ipcRenderer.invoke("gh:getSettings"),
+  // GitHub 설정
+  saveGHSettings: (data) => ipcRenderer.invoke("gh:saveSettings", data),
+  // PR 조회
+  fetchGHPRs: (baseUrl, token, repos) =>
+    ipcRenderer.invoke("gh:fetchPRs", baseUrl, token, repos),
+  // Diff
+  fetchGHDiff: (token, owner, repo, num) =>
+    ipcRenderer.invoke("gh:fetchDiff", token, owner, repo, num),
+  fetchGHCompareDiff: (token, owner, repo, base, head) =>
+    ipcRenderer.invoke("gh:fetchCompareDiff", token, owner, repo, base, head),
+  // PR 생성
+  createGHPR: (token, owner, repo, data) =>
+    ipcRenderer.invoke("gh:createPR", token, owner, repo, data),
+  // 브랜치
+  fetchGHBranches: (token, owner, repo) =>
+    ipcRenderer.invoke("gh:fetchBranches", token, owner, repo),
 };

@@ -7,7 +7,8 @@
     "start": "electron ."
   },
   "dependencies": {
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "p-limit": "^3.1.0"
   },
   "devDependencies": {
     "electron": "^28.0.0"
