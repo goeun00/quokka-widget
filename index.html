@@ -6,39 +6,20 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <video
-      id="vid"
-      src="assets/quokka.mp4"
-      autoplay
-      loop
-      muted
-      playsinline
-      style="
-        position: fixed;
-        top: -9999px;
-        left: -9999px;
-        width: 1px;
-        height: 1px;
-      "
-    ></video>
-    <video
-      id="vid2"
-      src="assets/rabit.mp4"
-      autoplay
-      loop
-      muted
-      playsinline
-      style="
-        position: fixed;
-        top: -9999px;
-        left: -9999px;
-        width: 1px;
-        height: 1px;
-      "
-    ></video>
     <div class="ctx-menu" id="ctxMenu">
       <div class="ctx-item" id="ctxTheme">☀ 라이트 모드</div>
       <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
+    </div>
+
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-box">
+        <div class="confirm-icon"></div>
+        <div class="confirm-msg" id="confirmMsg">삭제하시겠어요?</div>
+        <div class="confirm-btns">
+          <button class="confirm-btn cancel" id="confirmCancel" type="button">취소</button>
+          <button class="confirm-btn ok" id="confirmOk" type="button">삭제</button>
+        </div>
+      </div>
     </div>
 
     <div class="w" id="w">
@@ -180,16 +161,16 @@
             <button class="sc on" data-gh-tab="home" type="button">
               <span class="sl">바로가기</span>
             </button>
-            <button class="sc" data-gh-tab="open" type="button">
-              <span class="sl">Open PR</span
-              ><span class="sn" id="gh-n-open">0</span>
-            </button>
-            <button class="sc" data-gh-tab="done" type="button">
-              <span class="sl">완료 PR</span
-              ><span class="sn" id="gh-n-done">0</span>
+            <button class="sc" data-gh-tab="prs" type="button">
+              <span class="sl">PR 목록</span>
+              <span class="sn" id="gh-n-all">0</span>
             </button>
             <button class="sc" data-gh-tab="builder" type="button">
               <span class="sl">PR / Diff</span>
+            </button>
+            <button class="pin-card" id="ghPinSummary" type="button" disabled>
+              <div class="pin-label">Open</div>
+              <span class="pin-cnt" id="gh-n-open">0</span>
             </button>
           </div>
         </div>
@@ -229,10 +210,41 @@
         </section>
 
         <section id="ghListView" hidden>
+          <div class="search-wrap gh-search-wrap">
+            <span class="search-icon"
+              ><svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <circle
+                  cx="5.5"
+                  cy="5.5"
+                  r="4"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                />
+                <path
+                  d="M9 9l2.5 2.5"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                  stroke-linecap="round"
+                /></svg></span>
+            <input
+              class="search-input"
+              id="ghSearchInput"
+              type="text"
+              placeholder="PR 제목 / 브랜치 / 레포 검색..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <div class="search-clear" id="ghSearchClear">✕</div>
+          </div>
+          <div class="proj-bar gh-pill-bar" id="ghPrFilterBar">
+            <button class="ptag on" data-gh-filter="all" type="button">전체</button>
+            <button class="ptag" data-gh-filter="open" type="button">Open <span id="gh-n-open" class="gh-pill-count">0</span></button>
+            <button class="ptag" data-gh-filter="done" type="button">완료 <span id="gh-n-done" class="gh-pill-count">0</span></button>
+          </div>
           <div class="state loading" id="ghLoadingState">불러오는 중...</div>
           <div class="state error" id="ghErrorState" hidden></div>
           <div class="state empty" id="ghEmptyState" hidden>PR이 없어요 🎉</div>
-          <div class="il" id="ghPRList" hidden></div>
+          <div class="il gh-pr-list" id="ghPRList" hidden></div>
         </section>
 
         <section id="ghBuilderView" hidden>
@@ -398,7 +410,7 @@
           aria-label="Jira 패널 열기"
         >
           <div class="bbl" id="bbl"></div>
-          <canvas id="c" class="qc"></canvas>
+     <img id="quokka" src="assets/quokka.webp" class="qc">
         </button>
         <button
           class="qb"
@@ -406,7 +418,7 @@
           type="button"
           aria-label="GitHub 패널 열기"
         >
-          <canvas id="c2" class="qc2"></canvas>
+       <img id="rabit" src="assets/rabit.webp" class="qc2">
         </button>
       </div>
     </div>
@@ -457,28 +469,28 @@
         <div class="memo-drop-inner">
           <div class="memo-read">
             <span class="memo-read-empty">메모 없음</span>
-            <button class="memo-edit-trigger" type="button"></button>
+            <div class="memo-read-actions">
+              <button class="memo-edit-trigger la-btn" type="button"></button>
+              <button class="memo-del-trigger la-btn del" type="button"></button>
+            </div>
           </div>
           <div class="memo-edit-area">
-            <textarea
-              class="memo-ta"
-              placeholder="메모를 입력하세요... (URL 입력 시 자동 링크)"
-            ></textarea>
+            <textarea class="memo-ta" placeholder="메모를 입력하세요... (URL 입력 시 자동 링크)"></textarea>
             <div class="memo-edit-btns">
               <button class="me-btn memo-cancel" type="button">취소</button>
               <button class="me-btn ok memo-ok" type="button">확인</button>
             </div>
           </div>
+          <div class="link-lbl">branch</div>
+          <div class="branch-list"></div>
+          <div class="link-add-row">
+            <input class="branch-input" type="text" placeholder="feat/my-branch" autocomplete="off" spellcheck="false"/>
+            <button class="branch-add-btn" type="button">+ add</button>
+          </div>
           <div class="link-lbl">link</div>
           <div class="link-list"></div>
           <div class="link-add-row">
-            <input
-              class="link-input"
-              type="text"
-              placeholder="URL 붙여넣기..."
-              autocomplete="off"
-              spellcheck="false"
-            />
+            <input class="link-input" type="text" placeholder="URL 붙여넣기..." autocomplete="off" spellcheck="false"/>
             <button class="link-add-btn" type="button">+ add</button>
           </div>
         </div>
@@ -572,8 +584,8 @@
 
     <script>
       /* ══════════════════════════════════════════════
-   WebGL 캐릭터
-══════════════════════════════════════════════ */
+        WebGL 캐릭터
+      ══════════════════════════════════════════════ */
       function initQuokka(canvasId, videoId, speed = 1.0) {
         const vid = document.getElementById(videoId),
           c = document.getElementById(canvasId);
@@ -672,8 +684,8 @@
         vid.playbackRate = speed;
         vid.play().catch(() => {});
       }
-      initQuokka("c", "vid", 0.95);
-      initQuokka("c2", "vid2", 0.8);
+      // initQuokka("c", "vid", 0.95);
+      // initQuokka("c2", "vid2", 0.8);
 
       /* ══════════════════════════════════════════════
    Dock 우클릭 메뉴 / 드래그 이동
@@ -759,13 +771,27 @@ document.addEventListener('mousemove', e => {
     el.closest('.gh-panel') ||
     el.closest('.dock') ||
     el.closest('.bbl') ||
-    el.closest('.ctx-menu')
+    el.closest('.ctx-menu') ||
+    el.closest('.confirm-overlay')
   )
   window.api?.setIgnoreMouse(!isInteractive)
 })
       /* ══════════════════════════════════════════════
    아이콘 헬퍼 / 링크 아이콘
 ══════════════════════════════════════════════ */
+      /* ── 확인 팝업 ── */
+      function showConfirm(msg, onOk) {
+        const overlay = document.getElementById('confirmOverlay')
+        document.getElementById('confirmMsg').textContent = msg
+        overlay.classList.add('show')
+        const ok = document.getElementById('confirmOk')
+        const cancel = document.getElementById('confirmCancel')
+        function cleanup() { overlay.classList.remove('show'); ok.onclick = null; cancel.onclick = null }
+        ok.onclick = (e) => { e.stopPropagation(); cleanup(); onOk() }
+        cancel.onclick = (e) => { e.stopPropagation(); cleanup() }
+        overlay.onclick = (e) => { if (e.target === overlay) cleanup() }
+      }
+
       function mkIco(iClass, sizeClass = "ico-sm") {
         const s = document.createElement("span");
         s.className = `ico ${sizeClass} ${iClass}`;
@@ -885,6 +911,7 @@ document.addEventListener('mousemove', e => {
         issues = [],
         memos = {},
         links = {},
+        branches = {},
         pins = new Set(),
         q = "";
       let activeDropEl = null;
@@ -1034,7 +1061,8 @@ document.addEventListener('mousemove', e => {
       }
       function refreshInline(key, node) {
         const memo = memos[key] || "",
-          kLinks = links[key] || [];
+          kLinks = links[key] || [],
+          kBranches = branches[key] || [];
         const txtEl = node.querySelector(".memo-inline-text"),
           firstLine = memo ? memo.split("\n")[0] : "";
         txtEl.textContent = firstLine;
@@ -1042,23 +1070,25 @@ document.addEventListener('mousemove', e => {
         const chipsWrap = node.querySelector(".chips-wrap"),
           chipsEl = node.querySelector(".chips");
         chipsEl.innerHTML = "";
-        if (kLinks.length) {
+        const hasContent = kBranches.length || kLinks.length;
+        if (hasContent) {
           chipsWrap.style.display = "flex";
+          kBranches.forEach((b) => {
+            const chip = document.createElement("div");
+            chip.className = "chip chip-branch";
+            chip.appendChild(mkIco("i-ico-github", "ico-sm"));
+            chip.appendChild(document.createTextNode("\u00a0" + b));
+            chip.title = "클릭하면 복사";
+            chip.addEventListener("click", (e) => { e.stopPropagation(); navigator.clipboard?.writeText(b); });
+            chipsEl.appendChild(chip);
+          });
           kLinks.forEach((l) => {
-            const icoInfo =
-              LINK_ICONS.find(
-                (i) => i.id === (l.iconId || detectIcon(l.url).id),
-              ) || LINK_ICONS[4];
+            const icoInfo = LINK_ICONS.find((i) => i.id === (l.iconId || detectIcon(l.url).id)) || LINK_ICONS[4];
             const chip = document.createElement("div");
             chip.className = "chip";
             chip.appendChild(mkIco(icoInfo.cls, "ico-sm"));
-            chip.appendChild(
-              document.createTextNode("\u00a0" + (l.label || linkLabel(l.url))),
-            );
-            chip.addEventListener("click", (e) => {
-              e.stopPropagation();
-              window.api?.openUrl(l.url);
-            });
+            chip.appendChild(document.createTextNode("\u00a0" + (l.label || linkLabel(l.url))));
+            chip.addEventListener("click", (e) => { e.stopPropagation(); window.api?.openUrl(l.url); });
             chipsEl.appendChild(chip);
           });
         } else {
@@ -1114,6 +1144,75 @@ document.addEventListener('mousemove', e => {
           if (curF === "pin") render();
         });
         const drop = mkMemoDrop();
+        function renderBranchList() {
+          const bl = drop.querySelector(".branch-list");
+          bl.innerHTML = "";
+          (branches[issue.key] || []).forEach((b, idx) => {
+            const row = document.createElement("div");
+            row.className = "branch-item";
+            // 읽기 영역
+            const readDiv = document.createElement("div");
+            readDiv.className = "branch-read";
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "branch-name";
+            nameSpan.textContent = b;
+            const actions = document.createElement("div");
+            actions.className = "branch-actions";
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "branch-copy-btn la-btn"; copyBtn.type = "button"; copyBtn.title = "복사";
+            copyBtn.appendChild(mkIco("i-open", "ico-sm"));
+            const editBtn = document.createElement("button");
+            editBtn.className = "branch-edit-btn la-btn"; editBtn.type = "button"; editBtn.title = "수정";
+            editBtn.appendChild(mkIco("i-edit", "ico-sm"));
+            const delBtn = document.createElement("button");
+            delBtn.className = "branch-del-btn la-btn del"; delBtn.type = "button"; delBtn.title = "삭제";
+            delBtn.appendChild(mkIco("i-del", "ico-sm"));
+            actions.append(copyBtn, editBtn, delBtn);
+            readDiv.append(nameSpan, actions);
+            // 편집 영역
+            const editDiv = document.createElement("div");
+            editDiv.className = "branch-edit-area"; editDiv.hidden = true;
+            const editInput = document.createElement("input");
+            editInput.className = "branch-input"; editInput.type = "text";
+            editInput.value = b; editInput.autocomplete = "off";
+            const saveBtn = document.createElement("button");
+            saveBtn.className = "me-btn ok"; saveBtn.type = "button"; saveBtn.textContent = "확인";
+            const cancelBtn = document.createElement("button");
+            cancelBtn.className = "me-btn"; cancelBtn.type = "button"; cancelBtn.textContent = "취소";
+            editDiv.append(editInput, saveBtn, cancelBtn);
+            row.append(readDiv, editDiv);
+            // 이벤트
+            copyBtn.addEventListener("click", (e) => { e.stopPropagation(); navigator.clipboard?.writeText(b); });
+            editBtn.addEventListener("click", (e) => {
+              e.stopPropagation(); readDiv.hidden = true; editDiv.hidden = false; editInput.focus(); editInput.select();
+            });
+            cancelBtn.addEventListener("click", (e) => {
+              e.stopPropagation(); readDiv.hidden = false; editDiv.hidden = true;
+            });
+            saveBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const v = editInput.value.trim(); if (!v) return;
+              branches[issue.key][idx] = v;
+              window.api?.saveBranches?.(branches);
+              renderBranchList(); refreshInline(issue.key, node);
+            });
+            editInput.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") { e.preventDefault(); saveBtn.click(); }
+              if (e.key === "Escape") cancelBtn.click();
+            });
+            editInput.addEventListener("click", (e) => e.stopPropagation());
+            delBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              showConfirm(`'${b}' 브랜치를 삭제할까요?`, () => {
+                branches[issue.key].splice(idx, 1);
+                if (!branches[issue.key].length) delete branches[issue.key];
+                window.api?.saveBranches?.(branches);
+                renderBranchList(); refreshInline(issue.key, node);
+              });
+            });
+            bl.appendChild(row);
+          });
+        }
         function syncDrop() {
           const memo = memos[issue.key] || "",
             readEl = drop.querySelector(".memo-read"),
@@ -1132,6 +1231,7 @@ document.addEventListener('mousemove', e => {
               window.api?.openUrl(a.dataset.url || a.textContent);
             });
           });
+          renderBranchList();
           renderLinkList();
         }
         function renderLinkList() {
@@ -1175,12 +1275,14 @@ document.addEventListener('mousemove', e => {
             item.querySelector(".la-del").appendChild(mkIco("i-del", "ico-sm"));
             item.querySelector(".la-del").addEventListener("click", (e) => {
               e.stopPropagation();
-              if (!links[issue.key]) return;
-              links[issue.key].splice(idx, 1);
-              if (!links[issue.key].length) delete links[issue.key];
-              window.api?.saveLinks?.(links);
-              renderLinkList();
-              refreshInline(issue.key, node);
+              showConfirm("링크를 삭제할까요?", () => {
+                if (!links[issue.key]) return;
+                links[issue.key].splice(idx, 1);
+                if (!links[issue.key].length) delete links[issue.key];
+                window.api?.saveLinks?.(links);
+                renderLinkList();
+                refreshInline(issue.key, node);
+              });
             });
             item.querySelector(".le-cancel").addEventListener("click", (e) => {
               e.stopPropagation();
@@ -1203,17 +1305,24 @@ document.addEventListener('mousemove', e => {
             ll.appendChild(item);
           });
         }
-        drop
-          .querySelector(".memo-edit-trigger")
-          .appendChild(mkIco("i-edit", "ico-sm"));
-        drop
-          .querySelector(".memo-edit-trigger")
-          .addEventListener("click", (e) => {
+        drop.querySelector(".memo-edit-trigger").appendChild(mkIco("i-edit", "ico-sm"));
+        drop.querySelector(".memo-del-trigger").appendChild(mkIco("i-del", "ico-sm"));
+        drop.querySelector(".memo-edit-trigger").addEventListener("click", (e) => {
             e.stopPropagation();
             drop.querySelector(".memo-ta").value = memos[issue.key] || "";
             drop.querySelector(".memo-read").style.display = "none";
             drop.querySelector(".memo-edit-area").classList.add("show");
             drop.querySelector(".memo-ta").focus();
+          });
+        drop.querySelector(".memo-del-trigger").addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!memos[issue.key]) return;
+            showConfirm("메모를 삭제할까요?", () => {
+              delete memos[issue.key];
+              window.api?.saveMemos(memos);
+              syncDrop();
+              refreshInline(issue.key, node);
+            });
           });
         drop.querySelector(".memo-cancel").addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1241,6 +1350,24 @@ document.addEventListener('mousemove', e => {
           drop.querySelector(".memo-edit-area").classList.remove("show");
           refreshInline(issue.key, node);
         });
+        const branchInput = drop.querySelector(".branch-input");
+        const branchAddBtn = drop.querySelector(".branch-add-btn");
+        const doAddBranch = () => {
+          const val = branchInput.value.trim();
+          if (!val) return;
+          if (!branches[issue.key]) branches[issue.key] = [];
+          if (!branches[issue.key].includes(val)) {
+            branches[issue.key].push(val);
+            window.api?.saveBranches?.(branches);
+            refreshInline(issue.key, node);
+          }
+          branchInput.value = "";
+          renderBranchList();
+        };
+        branchAddBtn.addEventListener("click", (e) => { e.stopPropagation(); doAddBranch(); });
+        branchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); doAddBranch(); } });
+        branchInput.addEventListener("click", (e) => e.stopPropagation());
+
         const addInput = drop.querySelector(".link-input"),
           addBtn = drop.querySelector(".link-add-btn");
         const doAdd = () => {
@@ -1491,9 +1618,11 @@ document.addEventListener('mousemove', e => {
             const s = await window.api.getSettings(),
               m = await window.api.getMemos(),
               l = await window.api.getLinks?.(),
+              b = await window.api.getBranches?.(),
               p = await window.api.getPins?.();
             if (m) memos = m;
             if (l) links = l;
+            if (b) branches = b;
             if (p) pins = new Set(p);
             setTimeout(
               () =>
@@ -1528,6 +1657,8 @@ document.addEventListener('mousemove', e => {
         repos: [],
         history: [],
         selectedBaseByRepo: {},
+        prFilter: "all",
+        prQuery: "",
         login: "",
         avatarUrl: "",
       };
@@ -1812,29 +1943,60 @@ document.addEventListener('mousemove', e => {
         });
         return [...map.entries()];
       }
+      function ghApplyPRFilter(list) {
+        const query = (ghState.prQuery || "").trim().toLowerCase();
+        const filteredByState =
+          ghState.prFilter === "open"
+            ? list.filter((pr) => pr.stateGroup === "open")
+            : ghState.prFilter === "done"
+              ? list.filter((pr) => pr.stateGroup === "done")
+              : list;
+        if (!query) return filteredByState;
+        return filteredByState.filter((pr) =>
+          [pr.title, pr.head, pr.base, pr.owner, pr.repo, `#${pr.number}`]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(query)),
+        );
+      }
+
+      function ghRenderFilterBar() {
+        document
+          .querySelectorAll("[data-gh-filter]")
+          .forEach((btn) =>
+            btn.classList.toggle("on", btn.dataset.ghFilter === ghState.prFilter),
+          );
+      }
+
+      function ghSyncSearchClear() {
+        document
+          .getElementById("ghSearchClear")
+          ?.classList.toggle("vis", !!ghState.prQuery);
+      }
+
 
       function ghMakePRCard(pr) {
         const tpl = document
           .getElementById("ghPRCardTemplate")
           .content.firstElementChild.cloneNode(true);
         const badge = tpl.querySelector(".gh-pr-badge");
+        const isOpen = pr.stateLabel === "Open";
+        const diffUrl = `${ghState.baseUrl}/${pr.owner}/${pr.repo}/compare/${encodeURIComponent(pr.base)}...${encodeURIComponent(pr.head)}?expand=1`;
+
         badge.textContent = pr.stateLabel;
-        badge.classList.add(
-          pr.stateLabel === "Open" ? "gh-badge-open" : "gh-badge-draft",
-        );
+        badge.classList.add(isOpen ? "gh-badge-open" : "gh-badge-draft");
         tpl.querySelector(".gh-pr-repo").textContent = `${pr.owner}/${pr.repo}`;
         tpl.querySelector(".gh-pr-num").textContent = `#${pr.number}`;
         tpl.querySelector(".gh-pr-title").textContent = pr.title;
-        tpl.querySelector(".gh-pr-branch").textContent =
-          `${pr.head} → ${pr.base}`;
+        tpl.querySelector(".gh-pr-branch").textContent = `${pr.head} → ${pr.base}`;
         tpl.querySelector(".gh-pr-date").textContent = ghFmt(pr.updatedAt);
-
-        const prUrl = pr.url;
-        const diffUrl = `${ghState.baseUrl}/${pr.owner}/${pr.repo}/compare/${encodeURIComponent(pr.base)}...${encodeURIComponent(pr.head)}?expand=1`;
-
-        tpl.querySelector(".gh-pr-diff-btn").textContent = "Diff 바로 이동";
-        tpl.querySelector(".gh-pr-open-btn").textContent = "PR 바로 이동";
-        tpl.querySelector(".gh-pr-diff-btn").addEventListener("click", () => {
+        tpl.querySelector(".gh-pr-diff-btn").innerHTML = "";
+        tpl.querySelector(".gh-pr-open-btn").innerHTML = "";
+        tpl.querySelector(".gh-pr-diff-btn").appendChild(mkIco("i-extlink", "ico-sm"));
+        tpl.querySelector(".gh-pr-diff-btn").appendChild(document.createTextNode(" Diff"));
+        tpl.querySelector(".gh-pr-open-btn").appendChild(mkIco("i-open", "ico-sm"));
+        tpl.querySelector(".gh-pr-open-btn").appendChild(document.createTextNode(" Open"));
+        tpl.querySelector(".gh-pr-diff-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
           ghPushHistory({
             type: "DIFF",
             label: `${pr.owner}/${pr.repo}`,
@@ -1842,13 +2004,14 @@ document.addEventListener('mousemove', e => {
           });
           window.api?.openUrl(diffUrl);
         });
-        tpl.querySelector(".gh-pr-open-btn").addEventListener("click", () => {
+        tpl.querySelector(".gh-pr-open-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
           ghPushHistory({
             type: "PR",
             label: `${pr.owner}/${pr.repo} #${pr.number}`,
-            url: prUrl,
+            url: pr.url,
           });
-          window.api?.openUrl(prUrl);
+          window.api?.openUrl(pr.url);
         });
         return tpl;
       }
@@ -1856,17 +2019,20 @@ document.addEventListener('mousemove', e => {
       function ghRenderPRs() {
         const openList = ghState.prs.filter((pr) => pr.stateGroup === "open");
         const doneList = ghState.prs.filter((pr) => pr.stateGroup === "done");
+        const filtered = ghApplyPRFilter(ghState.prs);
         document.getElementById("gh-n-open").textContent = openList.length;
         document.getElementById("gh-n-done").textContent = doneList.length;
+        document.getElementById("gh-n-all").textContent = ghState.prs.length;
+        ghRenderFilterBar();
+        ghSyncSearchClear();
 
-        const list = ghState.tab === "done" ? doneList : openList;
         ghPRList.innerHTML = "";
-        if (!list.length) {
+        if (!filtered.length) {
           ghSetListState("empty");
           return;
         }
 
-        ghGroupByRepo(list).forEach(([repoName, items]) => {
+        ghGroupByRepo(filtered).forEach(([repoName, items]) => {
           const header = document.createElement("div");
           header.className = "gh-group-header";
           const repoObj = ghState.repos.find(
@@ -1877,42 +2043,18 @@ document.addEventListener('mousemove', e => {
       <div class="gh-group-dot"></div>
       <span class="gh-group-name">${repoName}</span>
       <span class="gh-group-count">${items.length}개</span>
-      ${repoUrl ? `<button class="gh-group-link" type="button" title="레포 열기">↗</button>` : ""}`;
-          if (repoUrl)
-            header
-              .querySelector(".gh-group-link")
-              .addEventListener("click", (e) => {
-                e.stopPropagation();
-                window.api?.openUrl(repoUrl);
-              });
+      ${repoUrl ? `<button class="gh-group-link" type="button" title="레포 열기"></button>` : ""}`;
+          if (repoUrl) {
+            const linkBtn = header.querySelector(".gh-group-link");
+            linkBtn.appendChild(mkIco("i-open", "ico-sm"));
+            linkBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              window.api?.openUrl(repoUrl);
+            });
+          }
           ghPRList.appendChild(header);
 
-          items.forEach((pr) => {
-            const row = document.createElement("div");
-            row.className = "gh-pr-row";
-            const barCls =
-              pr.stateLabel === "Open"
-                ? "gh-bar-open"
-                : pr.stateLabel === "Merged"
-                  ? "gh-bar-merged"
-                  : "gh-bar-closed";
-            row.innerHTML = `
-        <div class="gh-pr-row-bar ${barCls}"></div>
-        <div class="gh-pr-row-body">
-          <div class="gh-pr-row-title">${pr.title}</div>
-          <div class="gh-pr-row-sub">${pr.head} → ${pr.base} · ${ghFmt(pr.updatedAt)}</div>
-        </div>
-        <span class="gh-pr-row-arrow">↗</span>`;
-            row.addEventListener("click", () => {
-              ghPushHistory({
-                type: "PR",
-                label: `${pr.owner}/${pr.repo} #${pr.number}`,
-                url: pr.url,
-              });
-              window.api?.openUrl(pr.url);
-            });
-            ghPRList.appendChild(row);
-          });
+          items.forEach((pr) => ghPRList.appendChild(ghMakePRCard(pr)));
         });
 
         ghSetListState("list");
@@ -1977,8 +2119,8 @@ document.addEventListener('mousemove', e => {
               ghState.token,
               ghState.repos,
             )) || {};
-          ghState.prs = result.prs || [];
-          ghState.login = result.login || "";
+          ghState.prs       = Array.isArray(result.prs) ? result.prs : [];
+          ghState.login     = result.login     || "";
           ghState.avatarUrl = result.avatarUrl || "";
           ghRenderUserBadge();
           ghRenderPRs();
@@ -2023,8 +2165,7 @@ document.addEventListener('mousemove', e => {
           ghSetView("settings");
         } else {
           ghSetTab(ghState.tab);
-          if (ghState.tab === "open" || ghState.tab === "done")
-            await ghFetchPRs();
+          if (ghState.tab === "prs") await ghFetchPRs();
         }
       }
 
@@ -2052,10 +2193,10 @@ document.addEventListener('mousemove', e => {
           await ghLoadSettings();
           await ghLoadHistory();
 
-          // ✅ 처음 열 때 PR도 같이 불러와서 카운트 채우기
           if (ghState.token && ghState.baseUrl && ghState.repos.length) {
             await ghFetchPRs();
           } else {
+            document.getElementById("gh-n-all").textContent = "0";
             document.getElementById("gh-n-open").textContent = "0";
             document.getElementById("gh-n-done").textContent = "0";
           }
@@ -2072,7 +2213,7 @@ document.addEventListener('mousemove', e => {
         if (ghState.open) ghTogglePanel();
       });
       document.getElementById("ghRbtn").addEventListener("click", () => {
-        if (ghState.tab === "open" || ghState.tab === "done") ghFetchPRs();
+        if (ghState.tab === "prs") ghFetchPRs();
         else if (ghState.tab === "home") ghRenderHome();
         else ghRenderBuilder();
       });
@@ -2103,6 +2244,29 @@ document.addEventListener('mousemove', e => {
           }
         }),
       );
+      document.querySelectorAll("[data-gh-filter]").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          ghState.prFilter = btn.dataset.ghFilter;
+          ghRenderPRs();
+        }),
+      );
+      document.getElementById("ghSearchInput").addEventListener("input", (e) => {
+        ghState.prQuery = e.target.value || "";
+        ghRenderPRs();
+      });
+      document.getElementById("ghSearchInput").addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          ghState.prQuery = "";
+          e.currentTarget.value = "";
+          ghRenderPRs();
+        }
+      });
+      document.getElementById("ghSearchClear").addEventListener("click", () => {
+        ghState.prQuery = "";
+        const input = document.getElementById("ghSearchInput");
+        input.value = "";
+        ghRenderPRs();
+      });
       document
         .getElementById("ghSaveBtn")
         .addEventListener("click", async () => {
@@ -2182,7 +2346,7 @@ document.addEventListener('mousemove', e => {
         await ghLoadSettings();
         await ghLoadHistory();
       }
-      ghInit();
+      // ghInit();
 
       
     </script>

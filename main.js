@@ -52,9 +52,7 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "index.html"));
   win.webContents.openDevTools({ mode: "detach" });
 
-  win.setIgnoreMouseEvents(true, { forward: true });
-
-  [("index.html", "style.css")].forEach((file) => {
+  ["index.html", "style.css"].forEach((file) => {
     const target = path.join(__dirname, file);
     if (fs.existsSync(target)) {
       fs.watch(target, () => {
@@ -96,11 +94,17 @@ ipcMain.handle("save-pins", (_, p) => {
   store.set("pins", p);
   return true;
 });
+ipcMain.handle("get-branches", () => store.get("branches") || {});
+ipcMain.handle("save-branches", (_, b) => {
+  store.set("branches", b);
+  return true;
+});
 ipcMain.handle("fetch-issues", async () => {
   const s = store.get("settings") || {};
   if (!s.baseUrl || !s.pat) throw new Error("설정을 먼저 입력해주세요!");
   return await fetchMyIssues(s.baseUrl, s.pat, s.doneDays || 60);
 });
+
 ipcMain.on("set-ignore-mouse", (_, v) => {
   if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(v, { forward: true });
 });
