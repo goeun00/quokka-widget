@@ -24,7 +24,7 @@ async function fetchMyIssues(baseUrl, pat, doneDays = 60) {
     }
   } catch {}
 
-  const jql = `(assignee = currentUser() AND statusCategory != Done) OR (assignee = currentUser() AND statusCategory = Done AND updated >= -${doneDays}d) ORDER BY updated DESC`;
+  const jql = `(assignee=currentUser() OR watcher=currentUser()) AND (statusCategory!=Done OR (statusCategory=Done AND updated>=-${doneDays}d)) ORDER BY updated DESC`;
   const fields = "summary,status,priority,updated,issuetype";
   const url = `${baseUrl}/rest/api/2/search?jql=${encodeURIComponent(jql)}&fields=${fields}&maxResults=100`;
 
