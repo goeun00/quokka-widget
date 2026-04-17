@@ -46,7 +46,7 @@ async function fetchMyPRs(baseUrl, token, repos = []) {
       repos.slice(i, i + BATCH).map(async ({ owner, repo }) => {
         try {
           const res = await ghFetch(
-            `${apiBase}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=50`,
+            `${apiBase}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100`,
             { headers },
           );
           const prs = await res.json();
