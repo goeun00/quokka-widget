@@ -1,584 +1,127 @@
 <!doctype html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Quokka Jira Dock</title>
-    <link rel="stylesheet" href="./style.css" />
-  </head>
-  <body class="light-mode">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quokka Work Dock</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="ctx-menu" id="ctxMenu">
+    <div class="ctx-item" id="ctxTheme">🌙 다크 모드</div>
+    <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
+  </div>
 
-    <!-- ══════════════════════════════════════════════
-      컨텍스트 메뉴
-    ══════════════════════════════════════════════ -->
-    <div class="ctx-menu" id="ctxMenu">
-      <div class="ctx-item" id="ctxTheme">☀ 라이트 모드</div>
-      <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════
-      확인 팝업
-    ══════════════════════════════════════════════ -->
-    <div class="confirm-overlay" id="confirmOverlay">
-      <div class="confirm-box">
-        <div class="confirm-icon"></div>
-        <div class="confirm-msg" id="confirmMsg">삭제하시겠어요?</div>
-        <div class="confirm-btns">
-          <button class="confirm-btn cancel" id="confirmCancel" type="button">취소</button>
-          <button class="confirm-btn ok" id="confirmOk" type="button">삭제</button>
-        </div>
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <div class="confirm-msg" id="confirmMsg">삭제하시겠어요?</div>
+      <div class="confirm-btns">
+        <button class="confirm-btn cancel" id="confirmCancel" type="button">취소</button>
+        <button class="confirm-btn ok" id="confirmOk" type="button">삭제</button>
       </div>
     </div>
+  </div>
 
-    <div class="w" id="w">
-
-      <!-- ══════════════════════════════════════════════
-        Jira 패널
-      ══════════════════════════════════════════════ -->
-      <div class="panel" id="panel">
-        <div class="summary">
-          <div class="stop">
-            <div class="gh-user-badge">
-              <div class="gh-avatar" id="jiraAvatar">JR</div>
-              <span class="gh-username" id="jiraUsername"></span>
-            </div>
-            <span class="stitle" id="ptitle" style="text-align:center">Jira Issues</span>
-            <button class="hb button-re"      id="rbtn"        type="button"></button>
-            <button class="hb button-setting" id="settingsBtn" type="button"></button>
-            <button class="hb button-close"   id="jiraCloseBtn" type="button"></button>
+  <main class="app-shell">
+    <section class="dock-frame" id="dockFrame">
+      <section class="dock-panel">
+        <header class="dock-header">
+          <div class="avatar" id="avatarBtn" aria-label="profile"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M8 13c-2.2-4.8-2.6-8.2-.8-9 1.7-.7 3.8 2.4 4.8 6.6C13 6.4 15.1 3.3 16.8 4c1.8.8 1.4 4.2-.8 9"/><path d="M6.5 13.5c0 4 2.4 6.5 5.5 6.5s5.5-2.5 5.5-6.5c0-2.3-2.4-3.8-5.5-3.8s-5.5 1.5-5.5 3.8Z"/><path d="M9.5 14.5h.01M14.5 14.5h.01M10.5 17c.8.6 2.2.6 3 0"/></svg></span></div>
+          <div class="title-area">
+            <div class="eyebrow">Jira + Git</div>
+            <div class="title" id="dynamicTitle">@goeun · Jira</div>
           </div>
-          <div class="srow" id="statRow">
-            <button class="sc on" data-filter="todo" type="button">
-              <span class="sl">To Do</span><span class="sn" id="n-todo">0</span>
-            </button>
-            <button class="sc" data-filter="wip" type="button">
-              <span class="sl">In Progress</span><span class="sn" id="n-wip">0</span>
-            </button>
-            <button class="sc" data-filter="done" type="button">
-              <span class="sl">Done</span><span class="sn" id="n-done">0</span>
-            </button>
-            <button class="pin-card" id="pinCard" type="button">
-              <div class="pin-label">PIN</div>
-              <span class="pin-cnt" id="n-pin">0</span>
-            </button>
+          <div class="actions">
+            <button class="icon-btn" type="button" id="refreshBtn" aria-label="refresh"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M19 11a7 7 0 1 0-2.1 5"/></svg></span></button>
+            <button class="icon-btn" type="button" id="settingsBtn" aria-label="settings"><span class="svg-icon icon-settings"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-2 3.4-.2-.1a1.8 1.8 0 0 0-2.1.4l-.1.1h-4l-.1-.1a1.8 1.8 0 0 0-2.1-.4l-.2.1-2-3.4.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.6-1.2H6v-4h.1A1.8 1.8 0 0 0 7.7 8a1.8 1.8 0 0 0-.4-2l-.1-.1 2-3.4.2.1a1.8 1.8 0 0 0 2.1-.4l.1-.1h4l.1.1a1.8 1.8 0 0 0 2.1.4l.2-.1 2 3.4-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.6 1.2h.1v4h-.1a1.8 1.8 0 0 0-1.7 1.2Z"/></svg></span></button>
+            <button class="icon-btn" type="button" id="closePanelBtn" aria-label="close"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span></button>
           </div>
-        </div>
+        </header>
 
-        <div class="proj-bar" id="projBar" hidden></div>
+        <nav class="top-tabs" id="topTabs" aria-label="상위 메뉴">
+          <button class="top-tab is-on" type="button" data-view="jira"><span>Jira Issue</span><span class="tab-count" id="tabJiraCount">0</span></button>
+          <button class="top-tab" type="button" data-view="pr"><span>PR</span><span class="tab-count" id="tabPrCount">0</span></button>
+        </nav>
 
-        <section id="issueView">
-          <div class="state loading" id="loadingState">불러오는 중...</div>
-          <div class="state error"   id="errorState"   hidden></div>
-          <div class="state empty"   id="emptyState"   hidden>이슈가 없어요 🎉</div>
-          <div class="il"            id="issueList"    hidden></div>
+        <section class="view is-active" data-panel="jira">
+          <section class="summary-grid" aria-label="Jira 작업 현황">
+            <button class="summary-card is-on" type="button" data-jira-filter="todo"><span class="summary-label">TODO</span><span class="summary-num" id="nTodo">0</span></button>
+            <button class="summary-card" type="button" data-jira-filter="wip"><span class="summary-label">DOING</span><span class="summary-num" id="nWip">0</span></button>
+            <button class="summary-card" type="button" data-jira-filter="done"><span class="summary-label">DONE</span><span class="summary-num" id="nDone">0</span></button>
+            <button class="summary-card" type="button" data-jira-filter="pin"><span class="summary-label">PIN</span><span class="summary-num" id="nPin">0</span></button>
+          </section>
+          <label class="search"><span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></span><input class="search-input-native" id="jiraSearch" type="text" placeholder="이슈 / 브랜치 / 메모 검색..." /></label>
+          <div class="state" id="jiraState" hidden></div>
+          <section class="issue-list" id="issueList"></section>
         </section>
 
-        <div class="search-wrap" id="searchWrap">
-          <span class="search-icon">
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/>
-              <path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <input class="search-input" id="searchInput" type="text"
-            placeholder="이슈 검색..." autocomplete="off" spellcheck="false"/>
-          <div class="search-clear" id="searchClear">✕</div>
-        </div>
-
-        <section id="settingsView" hidden>
-          <div class="sbody">
-            <div class="srow2">
-              <label class="slb" for="iUrl">Jira URL</label>
-              <input class="si" id="iUrl" type="text"
-                placeholder="https://yourcompany.atlassian.net" autocomplete="off" spellcheck="false"/>
-            </div>
-            <div class="srow2">
-              <label class="slb" for="iPat">Personal Access Token</label>
-              <input class="si" id="iPat" type="password" placeholder="PAT 입력" autocomplete="off"/>
-            </div>
-            <div class="srow2">
-              <label class="slb" for="iDays">Done 이슈 보관 기간</label>
-              <select class="si" id="iDays">
-                <option value="30">30일</option>
-                <option value="60" selected>60일</option>
-              </select>
-            </div>
-            <button class="sv2" id="saveSettingsBtn" type="button">저장하고 불러오기</button>
-            <div class="sh">Jira → 프로필 → 개인 액세스 토큰</div>
-          </div>
-        </section>
-      </div>
-
-      <!-- ══════════════════════════════════════════════
-        GitHub 패널
-      ══════════════════════════════════════════════ -->
-      <div class="panel gh-panel" id="ghPanel">
-        <div class="summary">
-          <div class="stop">
-            <div class="gh-user-badge">
-              <div class="gh-avatar" id="ghAvatar">GH</div>
-              <span class="gh-username" id="ghUsername"></span>
-            </div>
-            <span class="stitle" id="ghPtitle" style="text-align:center">GitHub</span>
-            <button class="hb button-re"      id="ghRbtn"       type="button"></button>
-            <button class="hb button-setting" id="ghSettingsBtn" type="button"></button>
-            <button class="hb button-close"   id="ghCloseBtn"   type="button"></button>
-          </div>
-          <div class="srow" id="ghTabRow">
-            <button class="sc on" data-gh-tab="home" type="button">
-              <span class="sl">바로가기</span>
-            </button>
-            <button class="sc" data-gh-tab="prs" type="button">
-              <span class="sl">PR</span><span class="sn" id="gh-n-open">0</span>
-            </button>
-            <button class="sc" data-gh-tab="builder" type="button">
-              <span class="sl">PR / Diff</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 홈 탭 -->
-        <section id="ghHomeView">
-          <div class="sbody">
-            <div class="gh-sec">레포</div>
-            <div class="gh-repo-search-wrap">
-              <svg width="11" height="11" viewBox="0 0 13 13" fill="none">
-                <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/>
-                <path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-              </svg>
-              <input class="gh-repo-search-input" id="ghRepoSearchInput" type="text"
-                placeholder="레포 검색..." autocomplete="off" spellcheck="false"/>
-            </div>
-            <div class="gh-repo-list-scroll" id="ghShortcutList">
-              <!-- JS: ghRenderHome() 에서 .gh-repo-row-item 버튼들 삽입 -->
-            </div>
-            <div class="gh-sec" style="margin-top:10px">최근 링크</div>
-            <div id="ghHistoryList">
-              <!-- JS: ghRenderHome() 에서 .gh-hist-item 행들 삽입 -->
-            </div>
-          </div>
+        <section class="view" data-panel="pr">
+          <section class="summary-grid pr-summary" aria-label="PR 현황">
+            <button class="summary-card is-on" type="button" data-pr-filter="all"><span class="summary-label">ALL</span><span class="summary-num" id="nPrAll">0</span></button>
+            <button class="summary-card" type="button" data-pr-filter="open"><span class="summary-label">OPEN</span><span class="summary-num" id="nPrOpen">0</span></button>
+            <button class="summary-card" type="button" data-pr-filter="done"><span class="summary-label">DONE</span><span class="summary-num" id="nPrDone">0</span></button>
+          </section>
+          <label class="search"><span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></span><input class="search-input-native" id="prSearch" type="text" placeholder="PR 제목 / 브랜치 / 레포 검색..." /></label>
+          <div class="state" id="prState" hidden></div>
+          <section class="pr-list" id="prList"></section>
         </section>
 
-        <!-- PR 목록 탭 -->
-        <section id="ghListView" hidden>
-          <div class="gh-list-toolbar">
-            <div class="search-wrap gh-search-wrap">
-              <span class="search-icon">
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                  <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/>
-                  <path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                </svg>
-              </span>
-              <input class="search-input" id="ghPRSearchInput" type="text"
-                placeholder="PR 제목 / 브랜치 / 레포 검색..." autocomplete="off" spellcheck="false"/>
-              <div class="search-clear" id="ghPRSearchClear">✕</div>
-            </div>
-            <div class="gh-pill-row" id="ghPrFilterRow">
-              <button class="ptag on" data-gh-filter="all"  type="button">전체 <span id="gh-n-all">0</span></button>
-              <button class="ptag"    data-gh-filter="open" type="button">Open <span id="gh-n-open-pill">0</span></button>
-              <button class="ptag"    data-gh-filter="done" type="button">완료 <span id="gh-n-done">0</span></button>
-            </div>
-          </div>
-          <div class="state loading" id="ghLoadingState">불러오는 중...</div>
-          <div class="state error"   id="ghErrorState"   hidden></div>
-          <div class="state empty"   id="ghEmptyState"   hidden>PR이 없어요 🎉</div>
-          <div class="il gh-il"      id="ghPRList"       hidden>
-            <!-- JS: ghRenderPRs() 에서 .gh-group-header + .gh-pr-row 삽입 -->
-          </div>
-        </section>
-
-        <!-- PR/Diff 빌더 탭 -->
-        <section id="ghBuilderView" hidden>
-          <div class="sbody">
-            <div class="srow2">
-              <label class="slb" for="ghBuildRepo">레포</label>
-              <select class="si" id="ghBuildRepo"></select>
-            </div>
-            <div class="srow2">
-              <label class="slb gh-slb-em">Base 브랜치</label>
-              <div class="proj-bar" id="ghBranchBar" style="margin-top:6px"></div>
-            </div>
-            <div class="srow2">
-              <label class="slb gh-slb-em" for="ghHeadInput">Compare</label>
-              <div class="gh-builder-row">
-                <input class="si" id="ghHeadInput" type="text"
-                  placeholder="feature/my-branch 또는 abc1234"
-                  autocomplete="off" spellcheck="false" style="flex:1"/>
-                <button class="gh-ba-btn ico ico-sm i-extlink" id="ghGoPrBtn"   type="button" title="PR 열기"></button>
-                <button class="gh-ba-btn ico ico-sm i-copy" id="ghCopyPrBtn" type="button" title="링크 복사"></button>
-              </div>
-            </div>
-            <div class="gh-builder-divider"></div>
-            <div class="srow2">
-              <label class="slb gh-slb-em" for="ghBaseShaInput">SHA Diff</label>
-              <div class="gh-builder-row">
-                <input class="si" id="ghBaseShaInput" type="text"
-                  placeholder="base SHA" autocomplete="off" spellcheck="false" style="flex:1"/>
-                <span class="gh-sha-sep">→</span>
-                <input class="si" id="ghHeadShaInput" type="text"
-                  placeholder="head SHA" autocomplete="off" spellcheck="false" style="flex:1"/>
-                <button class="gh-ba-btn ico ico-sm i-extlink" id="ghGoDiffBtn"   type="button" title="Diff 열기"></button>
-                <button class="gh-ba-btn ico ico-sm i-copy" id="ghCopyDiffBtn" type="button" title="링크 복사"></button>
-              </div>
-            </div>
-            <div class="sh" id="ghBuildStatus"></div>
+        <section class="view" data-panel="settings">
+          <div class="settings-body">
+            <article class="setting-card">
+              <div class="setting-title">Settings</div>
+              <div class="setting-desc">실제 Jira / GitHub 설정과 저장소 데이터를 그대로 연결해요.</div>
+              <section class="setting-section">
+                <div class="setting-section-head"><div><div class="setting-section-kicker">Appearance</div><div class="setting-title" style="font-size:14px">Personalization</div></div></div>
+                <div class="form-row"><label for="userName">사용자 이름</label><input id="userName" class="field-input" type="text" placeholder="goeun" /></div>
+                <div class="form-row"><label for="dockCharacter">Dock 캐릭터 선택</label><select id="dockCharacter" class="field-input"><option value="quokka">쿼카 🐨</option><option value="rabbit">토끼 🐰</option></select></div>
+              </section>
+              <section class="setting-section">
+                <div class="setting-section-head"><div><div class="setting-section-kicker">Jira</div><div class="setting-title" style="font-size:14px">Issue Sync</div></div><span class="repo-tag base">required</span></div>
+                <div class="form-row"><label for="jiraUrl">Jira URL</label><input id="jiraUrl" class="field-input" type="text" placeholder="https://yourcompany.atlassian.net" /></div>
+                <div class="form-row"><label for="jiraToken">Jira Personal Access Token</label><input id="jiraToken" class="field-input" type="password" placeholder="PAT 입력" /></div>
+                <div class="form-row">
+                  <label class="setting-check" for="usePersonalJira">
+                    <input id="usePersonalJira" type="checkbox" />
+                    <span>개인 Jira 사용</span>
+                  </label>
+                </div>
+                <div class="form-row" id="jiraEmailWrap" hidden>
+                  <label for="jiraEmail">Jira Email</label>
+                  <input id="jiraEmail" class="field-input" type="email" placeholder="Atlassian 로그인 이메일" autocomplete="email" />
+                </div>
+                <div class="form-row"><label for="doneDays">Done 이슈 보관 기간</label><select id="doneDays" class="field-input"><option value="30">30일</option><option value="60">60일</option><option value="90">90일</option></select></div>
+              </section>
+              <section class="setting-section">
+                <div class="setting-section-head"><div><div class="setting-section-kicker">GitHub</div><div class="setting-title" style="font-size:14px">PR Sync</div></div><span class="repo-tag base">auto PR</span></div>
+                <div class="form-row"><label for="githubUrl">GitHub URL</label><input id="githubUrl" class="field-input" type="text" placeholder="https://github.company.com" /></div>
+                <div class="form-row"><label for="githubToken">GitHub Token</label><input id="githubToken" class="field-input" type="password" placeholder="PAT 입력" /></div>
+                <div class="repo-box">
+                  <div class="setting-title" style="font-size:13px">Repositories</div>
+                  <div class="setting-desc">레포와 base 브랜치를 한 줄로 추가해요. Base는 여러 개면 쉼표로 입력해요.</div>
+                  <div class="repo-row">
+                    <input class="field-input" id="repoFullName" type="text" placeholder="org-publisher/starro" aria-label="레포지토리 입력" />
+                    <input class="field-input" id="repoBranches" type="text" placeholder="dev,main,stg" aria-label="base 브랜치 입력" />
+                    <button class="mini-btn" id="addRepoBtn" type="button" aria-label="추가"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button>
+                  </div>
+                  <div class="repo-list" id="repoList"></div>
+                </div>
+              </section>
+              <button class="save-btn" id="saveSettingsBtn" type="button">저장하고 메인으로</button>
+            </article>
           </div>
         </section>
-
-        <!-- GitHub 설정 탭 -->
-        <section id="ghSettingsView" hidden>
-          <div class="sbody">
-            <div class="srow2">
-              <label class="slb" for="ghIBaseUrl">GitHub Base URL</label>
-              <input class="si" id="ghIBaseUrl" type="text"
-                placeholder="https://github.company.com" autocomplete="off" spellcheck="false"/>
-            </div>
-            <div class="srow2">
-              <label class="slb" for="ghIToken">GitHub PAT</label>
-              <input class="si" id="ghIToken" type="password" placeholder="PAT 입력" autocomplete="off"/>
-            </div>
-            <div class="srow2">
-              <label class="slb" for="ghDefaultBranches">기본 Base 브랜치</label>
-              <input class="si" id="ghDefaultBranches" type="text"
-                placeholder="main,dev,stg" autocomplete="off" spellcheck="false"/>
-            </div>
-            <div class="slb" style="margin-bottom:6px">레포지토리 목록</div>
-            <div id="ghRepoList" class="gh-repo-list"></div>
-            <button class="sv2" id="ghAddRepoBtn" type="button" style="margin-bottom:6px">+ 레포 추가</button>
-            <button class="sv2" id="ghSaveBtn"    type="button">저장하고 불러오기</button>
-            <div class="sh">
-              기본 Base 브랜치는 전체 레포 공통값이고, 레포별 브랜치를 입력하면 그 값이 우선이에요. 예: main,dev,stg,release
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- ══════════════════════════════════════════════
-        Dock
-      ══════════════════════════════════════════════ -->
-      <div class="dock" id="dock">
-        <button class="dock-handle" id="dockHandle" type="button" aria-label="Dock 이동">⋮⋮</button>
-        <button class="qb" id="dockBtn"   type="button" aria-label="Jira 패널 열기">
-          <div class="bbl" id="bbl"></div>
-          <img id="quokka" src="assets/quokka.webp" class="qc"/>
-        </button>
-        <button class="qb" id="ghDockBtn" type="button" aria-label="GitHub 패널 열기">
-          <img id="rabit" src="assets/rabit.webp" class="qc2"/>
-        </button>
-      </div>
-    </div><!-- /w -->
-
-
-    <!-- ══════════════════════════════════════════════
-      템플릿 모음
-      - JS에서 cloneNode(true) 로 찍어내는 구조체들
-      - 최대한 마크업을 HTML에 선언, JS는 데이터 바인딩만 담당
-    ══════════════════════════════════════════════ -->
-
-    <!-- 프로젝트 필터 태그 -->
-    <template id="projTagTemplate">
-      <button class="ptag" type="button"></button>
-    </template>
-
-    <!-- 이슈 그룹 (To Do / In Progress / Done / Pin) -->
-    <template id="issueGroupTemplate">
-      <section class="issue-group">
-        <div class="gh">
-          <span class="group-label"></span>
-          <div class="gl"></div>
-          <span class="group-count"></span>
-        </div>
-        <div class="group-items"></div>
       </section>
-    </template>
 
-    <!-- ──────────────────────────────────────────────
-      이슈 카드
-      .ik          : Jira 키 + 외부링크 아이콘
-      .type-badge  : 이슈 타입 뱃지 (아이콘 + 텍스트)
-      .sb          : 상태 뱃지
-      .pin-btn     : 핀 버튼 (아이콘은 JS에서 appendChild)
-      .it          : 이슈 제목
-      .idate       : 마지막 업데이트
-      .memo-inline-text : 메모 첫 줄 인라인
-      .chips-wrap / .chips : 브랜치·링크 칩
-    ────────────────────────────────────────────── -->
-    <template id="issueCardTemplate">
-      <article class="ic">
-        <div class="ib">
-          <div class="issue-head">
-            <div class="issue-meta-line">
-              <!-- Jira 키 버튼: 텍스트 + 외부링크 아이콘 -->
-              <button class="ik" type="button">
-                <span class="ik-key"></span>
-                <span class="ico ico-sm i-extlink"></span>
-              </button>
-              <!-- 이슈 타입 뱃지: 아이콘 + 레이블 -->
-              <span class="type-badge">
-                <span class="type-badge-ico ico ico-sm"></span>
-                <span class="type-badge-lbl"></span>
-              </span>
-              <!-- 상태 뱃지 -->
-              <span class="sb"></span>
-            </div>
-            <div class="issue-side">
-              <!-- 핀 버튼: 아이콘 -->
-              <button class="pin-btn" type="button" aria-label="핀">
-                <span class="ico ico-sm i-pin"></span>
-              </button>
-            </div>
-          </div>
-          <div class="it-row"><span class="it"></span></div>
-          <div class="issue-foot">
-            <span class="idate"></span>
-          </div>
-          <div class="box_memo">
-            <span class="memo-inline-text" style="display:none"></span>
-            <div class="chips-wrap" style="display:none">
-              <div class="chips"></div>
-            </div>
-          </div>
-        </div>
-      </article>
-    </template>
+      <footer class="dock-bottom"><div class="speech" id="speech">쿼카를 누르면 Jira 이슈, 토끼를 누르면 PR을 열어요</div><div class="character"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M8 13c-2.2-4.8-2.6-8.2-.8-9 1.7-.7 3.8 2.4 4.8 6.6C13 6.4 15.1 3.3 16.8 4c1.8.8 1.4 4.2-.8 9"/><path d="M6.5 13.5c0 4 2.4 6.5 5.5 6.5s5.5-2.5 5.5-6.5c0-2.3-2.4-3.8-5.5-3.8s-5.5 1.5-5.5 3.8Z"/><path d="M9.5 14.5h.01M14.5 14.5h.01M10.5 17c.8.6 2.2.6 3 0"/></svg></span></div></footer>
+    </section>
 
-    <!-- 브랜치 칩 (chips 안에 들어가는 한 칸) -->
-    <template id="chipBranchTemplate">
-      <div class="chip chip-branch" title="클릭하면 복사">
-        <span class="ico ico-sm i-ico-github"></span>
-        <span class="chip-text"></span>
-      </div>
-    </template>
+    <div class="dock-bottom-native" id="dock">
+      <button class="dock-handle" id="dockHandle" type="button" aria-label="Dock 이동">⋮⋮</button>
+      <button class="dock-native-btn" id="dockBtn" type="button" aria-label="Jira 패널 열기"><img src="assets/quokka.webp" alt="" /></button>
+      <button class="dock-native-btn" id="ghDockBtn" type="button" aria-label="GitHub 패널 열기"><img src="assets/rabit.webp" alt="" /></button>
+    </div>
+  </main>
 
-    <!-- 링크 칩 -->
-    <template id="chipLinkTemplate">
-      <div class="chip">
-        <span class="ico ico-sm chip-link-ico"></span>
-        <span class="chip-text"></span>
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      메모 드롭다운
-    ────────────────────────────────────────────── -->
-    <template id="memoDropTemplate">
-      <div class="memo-drop">
-        <div class="memo-drop-inner">
-
-          <!-- 메모 읽기 영역 -->
-          <div class="memo-read">
-            <span class="memo-read-empty">메모 없음</span>
-            <div class="memo-read-actions">
-              <button class="memo-edit-trigger la-btn" type="button">
-                <span class="ico ico-sm i-edit"></span>
-              </button>
-              <button class="memo-del-trigger la-btn del" type="button">
-                <span class="ico ico-sm i-del"></span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 메모 편집 영역 -->
-          <div class="memo-edit-area">
-            <textarea class="memo-ta" placeholder="메모를 입력하세요... (URL 입력 시 자동 링크)"></textarea>
-            <div class="memo-edit-btns">
-              <button class="me-btn memo-cancel" type="button">취소</button>
-              <button class="me-btn ok memo-ok"  type="button">확인</button>
-            </div>
-          </div>
-
-          <!-- 브랜치 섹션 -->
-          <div class="link-lbl">branch</div>
-          <div class="branch-list"></div>
-          <div class="link-add-row">
-            <input class="branch-input" type="text"
-              placeholder="feat/my-branch" autocomplete="off" spellcheck="false"/>
-            <button class="branch-add-btn" type="button">+</button>
-          </div>
-
-          <!-- 링크 섹션 -->
-          <div class="link-lbl">link</div>
-          <div class="link-list"></div>
-          <div class="link-add-row">
-            <input class="link-input" type="text"
-              placeholder="URL 붙여넣기..." autocomplete="off" spellcheck="false"/>
-            <button class="link-add-btn" type="button">+</button>
-          </div>
-
-        </div>
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      브랜치 행 (branch-list 안에 반복)
-    ────────────────────────────────────────────── -->
-    <template id="branchItemTemplate">
-      <div class="branch-item">
-        <!-- 읽기 -->
-        <div class="branch-read">
-          <span class="branch-name"></span>
-          <div class="branch-actions">
-            <button class="branch-copy-btn la-btn" type="button" title="복사">
-              <span class="ico ico-sm i-open"></span>
-            </button>
-            <button class="branch-edit-btn la-btn" type="button" title="수정">
-              <span class="ico ico-sm i-edit"></span>
-            </button>
-            <button class="branch-del-btn la-btn del" type="button" title="삭제">
-              <span class="ico ico-sm i-del"></span>
-            </button>
-          </div>
-        </div>
-        <!-- 편집 -->
-        <div class="branch-edit-area" hidden>
-          <input class="branch-input" type="text" autocomplete="off"/>
-          <button class="me-btn ok"  type="button">확인</button>
-          <button class="me-btn"     type="button">취소</button>
-        </div>
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      링크 행 (link-list 안에 반복)
-    ────────────────────────────────────────────── -->
-    <template id="linkItemTemplate">
-      <div class="link-item">
-        <!-- 읽기 -->
-        <div class="link-read">
-          <button class="link-ico-btn" type="button">
-            <span class="ico ico-md link-ico-span"></span>
-            <!-- 아이콘 피커는 JS에서 동적 삽입 (LINK_ICONS 순회 필요) -->
-          </button>
-          <div class="link-info">
-            <span class="link-name-text"></span>
-            <span class="link-url-text"></span>
-          </div>
-          <div class="link-action-btns">
-            <button class="la-btn la-edit" type="button">
-              <span class="ico ico-sm i-edit"></span>
-            </button>
-            <button class="la-btn del la-del" type="button">
-              <span class="ico ico-sm i-del"></span>
-            </button>
-          </div>
-        </div>
-        <!-- 편집 -->
-        <div class="link-edit">
-          <div class="le-row">
-            <span class="le-lbl">이름</span>
-            <input class="le-input le-name" type="text" placeholder="링크 이름" autocomplete="off"/>
-          </div>
-          <div class="le-row">
-            <span class="le-lbl">URL</span>
-            <input class="le-input le-url" type="text" placeholder="https://..." autocomplete="off"/>
-          </div>
-          <div class="le-btns">
-            <button class="le-btn le-cancel" type="button">취소</button>
-            <button class="le-btn ok le-ok"  type="button">확인</button>
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- 아이콘 피커 옵션 한 칸 -->
-    <template id="iconOptionTemplate">
-      <div class="ico-opt">
-        <span class="ico ico-md"></span>
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      GitHub 레포 설정 행 (ghRepoList 안에 반복)
-    ────────────────────────────────────────────── -->
-    <template id="ghRepoRowTemplate">
-      <div class="gh-repo-row">
-        <input class="si gh-repo-full"     type="text" placeholder="owner/repo"
-          autocomplete="off" spellcheck="false" style="flex:1;min-width:0"/>
-        <input class="si gh-repo-branches" type="text" placeholder="main,dev,stg"
-          autocomplete="off" spellcheck="false" style="flex:1;min-width:0"/>
-        <button class="gh-repo-del" type="button">✕</button>
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      GitHub 홈 - 레포 바로가기 행
-    ────────────────────────────────────────────── -->
-    <template id="ghRepoRowItemTemplate">
-      <button class="gh-repo-row-item" type="button">
-        <div class="gh-repo-row-dot"></div>
-        <div class="gh-repo-row-body">
-          <div class="gh-repo-row-name"></div>
-          <div class="gh-repo-row-owner"></div>
-        </div>
-        <span class="gh-repo-row-arrow ico ico-sm i-extlink"></span>
-      </button>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      GitHub 홈 - 최근 링크(히스토리) 행
-    ────────────────────────────────────────────── -->
-    <template id="ghHistItemTemplate">
-      <div class="gh-hist-item">
-        <span class="gh-hist-type"></span><!-- gh-hist-pr / gh-hist-diff 클래스는 JS에서 -->
-        <div class="gh-hist-body">
-          <div class="gh-hist-label"></div>
-          <div class="gh-hist-url"></div>
-        </div>
-        <div class="gh-hist-actions">
-          <button class="gh-hist-btn gh-hist-open ico ico-sm i-extlink" type="button" title="열기"></button>
-          <button class="gh-hist-btn gh-hist-copy ico ico-sm i-copy" type="button" title="복사"></button>
-        </div>
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      GitHub PR 목록 - 그룹 헤더 (레포별)
-    ────────────────────────────────────────────── -->
-    <template id="ghGroupHeaderTemplate">
-      <div class="gh-group-header">
-        <div class="gh-group-dot"></div>
-        <span class="gh-group-name"></span>
-        <span class="gh-group-count"></span>
-        <!-- .gh-group-link 버튼은 레포 URL 있을 때만 JS에서 삽입 -->
-      </div>
-    </template>
-
-    <!-- ──────────────────────────────────────────────
-      GitHub PR 목록 - PR 행
-    ────────────────────────────────────────────── -->
-    <template id="ghPRRowTemplate">
-      <div class="gh-pr-row">
-        <div class="gh-pr-row-body">
-          <div class="gh-pr-row-top">
-            <span class="gh-pr-state"></span>
-            <span class="gh-pr-row-num"></span>
-            <span class="gh-pr-row-repo"></span>
-            <span class="gh-pr-row-time"></span>
-          </div>
-          <div class="gh-pr-row-title"></div>
-          <div class="gh-pr-row-sub"></div>
-        </div>
-        <div class="gh-pr-row-actions">
-          <button class="gh-pr-row-btn gh-pr-open-btn" type="button" title="PR 열기">
-            <span class="ico ico-sm i-open"></span>
-          </button>
-          <button class="gh-pr-row-btn gh-pr-diff-btn" type="button" title="Diff 열기">
-            <span class="ico ico-sm i-extlink"></span>
-          </button>
-          <button class="gh-pr-row-btn gh-pr-copy-btn" type="button" title="링크 복사">
-            <span class="ico ico-sm i-ico-link"></span>
-          </button>
-        </div>
-      </div>
-    </template>
-
-    <!-- 검색 결과 없음 -->
-    <template id="noResultTemplate">
-      <div class="no-result">
-        <div class="no-result-icon">🔍</div>
-        <span class="no-result-msg"></span>
-      </div>
-    </template>
-
-    <script src="./renderer.js"></script>
-  </body>
+  <script src="./renderer.js"></script>
+</body>
 </html>

@@ -3,6 +3,11 @@ function getApiBase(baseUrl = "") {
     .trim()
     .replace(/\/$/, "")
     .replace(/\/api\/v3$/, "");
+
+  if (normalized === "https://github.com") {
+    return "https://api.github.com";
+  }
+
   return `${normalized}/api/v3`;
 }
 

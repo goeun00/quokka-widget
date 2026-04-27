@@ -19,8 +19,8 @@ function clampWindowPosition(x, y, width, height) {
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-  const W = 370;
-  const H = 680;
+  const W = 490;
+  const H = 860;
   const savedPos = store.get("windowPos");
   const initialPos = savedPos
     ? clampWindowPosition(
@@ -102,13 +102,13 @@ ipcMain.handle("save-branches", (_, b) => {
 ipcMain.handle("fetch-issues", async () => {
   const s = store.get("settings") || {};
   if (!s.baseUrl || !s.pat) throw new Error("설정을 먼저 입력해주세요!");
-  return await fetchMyIssues(s.baseUrl, s.pat, s.doneDays || 60);
+  return await fetchMyIssues(s.baseUrl, s.pat, s.doneDays || 60, s.email || "");
 });
 
 ipcMain.handle("fetch-issues-by-keys", async (_, keys) => {
   const s = store.get("settings") || {};
   if (!s.baseUrl || !s.pat) throw new Error("설정을 먼저 입력해주세요!");
-  return await fetchIssuesByKeys(s.baseUrl, s.pat, keys);
+  return await fetchIssuesByKeys(s.baseUrl, s.pat, keys, s.email || "");
 });
 
 ipcMain.on("set-ignore-mouse", (_, v) => {
