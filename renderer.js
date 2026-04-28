@@ -948,20 +948,33 @@ function renderPRs() {
 function createPRCard(pr) {
   const query = $("#prSearch")?.value.trim() || "";
   const card = cloneTemplate("prCardTemplate");
-  const statusClass = pr.stateGroup === "open" ? "doing" : "done";
+  const isOpen = pr.stateGroup === "open";
   const jiraKey =
     (pr.title + " " + pr.head).match(/[A-Z][A-Z0-9]+-\d+/)?.[0] || "";
   const prUrl = pr.url || "";
   const diffUrl = prUrl ? `${prUrl}/files` : "";
 
+  card.classList.add(isOpen ? "tone-open" : "tone-done");
+
+  const actionBtn = $(".pr-action-btn", card);
+  actionBtn.textContent = isOpen ? "↗" : "✓";
+
   $(".pr-repo", card).innerHTML =
     `${hl(pr.owner, query)} / ${hl(pr.repo, query)}`;
-  $(".pr-title", card).innerHTML = hl(pr.title, query);
+
   const status = $(".pr-state", card);
-  status.classList.add(statusClass);
+  status.classList.add(isOpen ? "done" : "doing");
   status.textContent = pr.stateLabel || "";
-  $(".pr-number", card).textContent = `#${pr.number || ""}`;
-  $(".pr-date", card).textContent = fmtDate(pr.updatedAt);
+
+  $(".pr-date-label", card).textContent = fmtDate(pr.updatedAt);
+
+  $(".pr-title", card).innerHTML =
+    `<span class="pr-number-label">#${esc(String(pr.number || ""))}</span> ${hl(pr.title, query)}`;
+
+  actionBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (prUrl) window.api?.openUrl?.(prUrl);
+  });
 
   $(".pr-title", card).addEventListener("click", (e) => {
     e.stopPropagation();
