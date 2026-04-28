@@ -224,17 +224,16 @@
   <template id="prCardTemplate">
     <article class="pr-card">
       <button class="pr-copy-btn" type="button" aria-label="PR 링크 복사" title="PR 링크 복사"><span class="svg-icon i-link"></span></button>
-      <div class="pr-top">
-        <div class="type-icon pr">PR</div>
+      <div class="pr-card-row">
+        <button class="pr-action-btn" type="button" aria-label="PR 열기"></button>
         <div class="pr-main">
-          <div class="pr-repo"></div>
+          <div class="pr-info-row">
+            <span class="pr-repo"></span>
+            <span class="badge pr-state"></span>
+            <span class="pr-date-label"></span>
+          </div>
           <button class="pr-title" type="button"></button>
         </div>
-      </div>
-      <div class="meta-row">
-        <span class="badge pr-state"></span>
-        <span class="badge gray pr-number"></span>
-        <span class="badge gray pr-date"></span>
       </div>
       <div class="link-stack pr-link-stack"></div>
     </article>
@@ -253,13 +252,13 @@
   </template>
 
   <template id="prBranchRowTemplate">
-    <button class="linked-row pr-branch-row" type="button" aria-label="PR diff 열기">
-      <span class="linked-dot branch"></span>
-      <span class="pr-row-content">
-        <strong class="pr-head"></strong>
-        <span class="pr-row-desc">→ <span class="pr-base"></span></span>
+    <button class="pr-branch-row" type="button" aria-label="PR diff 열기">
+      <span class="pr-branch-text">
+        <span class="pr-head"></span>
+        <span class="pr-arrow">→</span>
+        <span class="pr-base"></span>
       </span>
-      <span class="pr-row-cue" aria-hidden="true">↗</span>
+      <span class="pr-row-cue" aria-hidden="true">⌁</span>
     </button>
   </template>
 
