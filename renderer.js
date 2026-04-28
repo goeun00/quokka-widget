@@ -1,15 +1,22 @@
-
 "use strict";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-const icon = (name, extra = "") => `<span class="svg-icon i-${name}${extra ? ` ${extra}` : ""}"></span>`;
+function cloneTemplate(id) {
+  const template = document.getElementById(id);
+  if (!template) throw new Error(`Template not found: #${id}`);
+  return template.content.firstElementChild.cloneNode(true);
+}
+
+const icon = (name, extra = "") =>
+  `<span class="svg-icon i-${name}${extra ? ` ${extra}` : ""}"></span>`;
 
 const ICONS = {
   bug: icon("bug"),
   task: icon("task"),
   story: icon("story"),
+  epic: icon("epic"),
   doc: icon("doc"),
   figma: icon("figma"),
   link: icon("link"),
@@ -50,15 +57,34 @@ const state = {
   gh: { baseUrl: "", token: "", repos: [], login: "", avatarUrl: "" },
   jira: { baseUrl: "", pat: "", doneDays: 60, login: "" },
   reposDraft: [],
+  repoEditingIndex: null,
   dockCharacter: "quokka",
   userName: "goeun",
 };
 
 function esc(s = "") {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 }
-function showSpeech(msg) {
-  $("#speech").textContent = msg;
+let speechTimer = null;
+
+function showSpeech(msg, delay = 2200) {
+  const speech = $("#speech");
+  if (!speech) return;
+
+  speech.textContent = msg;
+  speech.classList.add("is-show");
+
+  clearTimeout(speechTimer);
+  speechTimer = setTimeout(() => {
+    speech.classList.remove("is-show");
+    speech.textContent = "";
+  }, delay);
 }
 function setPanel(open, view = state.view) {
   state.panelOpen = open;
@@ -68,10 +94,18 @@ function setPanel(open, view = state.view) {
 function setView(view) {
   state.view = view;
   $("#topTabs").classList.toggle("is-settings", view === "settings");
-  $$(".top-tab").forEach((tab) => tab.classList.toggle("is-on", tab.dataset.view === view));
-  $$(".view").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.panel === view));
+  $$(".top-tab").forEach((tab) =>
+    tab.classList.toggle("is-on", tab.dataset.view === view),
+  );
+  $$(".view").forEach((panel) =>
+    panel.classList.toggle("is-active", panel.dataset.panel === view),
+  );
   const name = state.userName || "goeun";
-  const titles = { jira: `@${name} · Jira`, pr: `@${name} · Pull Requests`, settings: `@${name} · Settings` };
+  const titles = {
+    jira: `@${name} · Jira`,
+    pr: `@${name} · Pull Requests`,
+    settings: `@${name} · Settings`,
+  };
   $("#dynamicTitle").textContent = titles[view] || titles.jira;
   if (view === "settings") loadSettingsIntoForm();
   if (view === "jira") renderIssues();
@@ -106,23 +140,27 @@ function typeInfo(type = "") {
   const t = String(type).toLowerCase();
   if (t.includes("bug")) return { cls: "bug", icon: ICONS.bug };
   if (t.includes("story")) return { cls: "story", icon: ICONS.story };
+  if (t.includes("epic")) return { cls: "epic", icon: ICONS.epic };
   return { cls: "task", icon: ICONS.task };
 }
 function linkLabel(url) {
   try {
     const u = new URL(url);
-    if (u.protocol === "file:") return decodeURIComponent(u.pathname.split("/").pop()) || url;
+    if (u.protocol === "file:")
+      return decodeURIComponent(u.pathname.split("/").pop()) || url;
     return u.hostname.replace(/^www\./, "");
   } catch {
     return url;
   }
 }
 function detectIconId(url, iconId = "") {
-  if (iconId && LINK_ICON_OPTIONS.some((item) => item.id === iconId)) return iconId;
+  if (iconId && LINK_ICON_OPTIONS.some((item) => item.id === iconId))
+    return iconId;
   const u = String(url || "").toLowerCase();
   if (u.includes("figma")) return "icoFigma";
   if (/github|gitlab/.test(u)) return "icoGithub";
-  if (/notion|docs\.google|confluence|atlassian|drive\.google/.test(u)) return "icoDoc";
+  if (/notion|docs\.google|confluence|atlassian|drive\.google/.test(u))
+    return "icoDoc";
   if (u.includes("desktop") || u.includes("pc")) return "icoDesktop";
   if (u.includes("mobile")) return "icoMobile";
   if (u.startsWith("file:")) return "icoFile";
@@ -130,7 +168,9 @@ function detectIconId(url, iconId = "") {
 }
 function linkIcon(url, iconId = "") {
   const id = detectIconId(url, iconId);
-  return (LINK_ICON_OPTIONS.find((item) => item.id === id) || LINK_ICON_OPTIONS[0]).icon;
+  return (
+    LINK_ICON_OPTIONS.find((item) => item.id === id) || LINK_ICON_OPTIONS[0]
+  ).icon;
 }
 function iconPickerHtml(selectedId = "icoLink") {
   return `<div class="link-picker">${LINK_ICON_OPTIONS.map((item) => `<button class="link-ico ${item.id === selectedId ? "is-picked" : ""}" type="button" data-icon-id="${item.id}" title="${esc(item.label)}">${item.icon}</button>`).join("")}</div>`;
@@ -151,11 +191,7 @@ function hl(text = "", keyword = "") {
 }
 
 function splitSearchTokens(rawQuery = "") {
-  return String(rawQuery)
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  return String(rawQuery).trim().toLowerCase().split(/\s+/).filter(Boolean);
 }
 
 function tokenParts(token = "") {
@@ -174,7 +210,9 @@ function queryValues(rawQuery = "") {
 }
 
 function includesValue(source = "", value = "") {
-  return String(source || "").toLowerCase().includes(String(value || "").toLowerCase());
+  return String(source || "")
+    .toLowerCase()
+    .includes(String(value || "").toLowerCase());
 }
 
 function matchesField(fields, field, value) {
@@ -209,7 +247,9 @@ function matchesQuery(fields, rawQuery = "") {
     const { field, value } = tokenParts(token);
     if (!value) return true;
     if (field) return matchesField(fields, field, value);
-    return Object.values(fields).some((fieldValue) => includesValue(fieldValue, value));
+    return Object.values(fields).some((fieldValue) =>
+      includesValue(fieldValue, value),
+    );
   });
 }
 
@@ -251,26 +291,34 @@ async function boot() {
   bindFilters();
   await loadLocalState();
   await loadSettings();
-  await Promise.allSettled([fetchIssues({ silent: true }), fetchPRs({ silent: true })]);
+  await Promise.allSettled([
+    fetchIssues({ silent: true }),
+    fetchPRs({ silent: true }),
+  ]);
   renderAll();
 }
 
 function bindChrome() {
   $("#dockBtn").addEventListener("click", async () => {
     setPanel(!state.panelOpen, state.previousView || "jira");
-    if (state.panelOpen && state.view === "jira" && !state.issues.length) await fetchIssues();
-    if (state.panelOpen && state.view === "pr" && !state.prs.length) await fetchPRs();
+    if (state.panelOpen && state.view === "jira" && !state.issues.length)
+      await fetchIssues();
+    if (state.panelOpen && state.view === "pr" && !state.prs.length)
+      await fetchPRs();
   });
   $("#ghDockBtn").addEventListener("click", async () => {
     setPanel(!state.panelOpen, state.previousView || "jira");
-    if (state.panelOpen && state.view === "jira" && !state.issues.length) await fetchIssues();
-    if (state.panelOpen && state.view === "pr" && !state.prs.length) await fetchPRs();
+    if (state.panelOpen && state.view === "jira" && !state.issues.length)
+      await fetchIssues();
+    if (state.panelOpen && state.view === "pr" && !state.prs.length)
+      await fetchPRs();
   });
   updateDockVisibility();
   $("#closePanelBtn").addEventListener("click", () => setPanel(false));
   $("#refreshBtn").addEventListener("click", async () => {
     if (state.view === "pr") await fetchPRs();
-    else if (state.view === "settings") await Promise.all([fetchIssues(), fetchPRs()]);
+    else if (state.view === "settings")
+      await Promise.all([fetchIssues(), fetchPRs()]);
     else await fetchIssues();
   });
   $("#settingsBtn").addEventListener("click", () => {
@@ -280,7 +328,9 @@ function bindChrome() {
       setView("settings");
     }
   });
-  $$(".top-tab").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
+  $$(".top-tab").forEach((tab) =>
+    tab.addEventListener("click", () => setView(tab.dataset.view)),
+  );
 
   $("#avatarBtn").addEventListener("click", toggleTheme);
   $("#ctxTheme").addEventListener("click", toggleTheme);
@@ -288,22 +338,31 @@ function bindChrome() {
   $("#dock").addEventListener("contextmenu", (e) => {
     e.preventDefault();
     const menu = $("#ctxMenu");
-    menu.style.left = Math.max(8, Math.min(e.clientX, window.innerWidth - 148)) + "px";
-    menu.style.top = Math.max(8, Math.min(e.clientY - 70, window.innerHeight - 90)) + "px";
+    menu.style.left =
+      Math.max(8, Math.min(e.clientX, window.innerWidth - 148)) + "px";
+    menu.style.top =
+      Math.max(8, Math.min(e.clientY - 70, window.innerHeight - 90)) + "px";
     menu.classList.add("show");
   });
   document.addEventListener("click", (e) => {
-    if (!$("#ctxMenu").contains(e.target)) $("#ctxMenu").classList.remove("show");
+    if (!$("#ctxMenu").contains(e.target))
+      $("#ctxMenu").classList.remove("show");
   });
 
-  let dragging = false, ox = 0, oy = 0, raf = null, pending = null;
+  let dragging = false,
+    ox = 0,
+    oy = 0,
+    raf = null,
+    pending = null;
   $("#dockHandle").addEventListener("mousedown", (e) => {
     e.preventDefault();
     dragging = true;
     ox = e.screenX - window.screenX;
     oy = e.screenY - window.screenY;
   });
-  window.addEventListener("mouseup", () => { dragging = false; });
+  window.addEventListener("mouseup", () => {
+    dragging = false;
+  });
   window.addEventListener("mousemove", (e) => {
     if (!dragging) return;
     pending = { x: e.screenX - ox, y: e.screenY - oy };
@@ -315,7 +374,12 @@ function bindChrome() {
   });
   document.addEventListener("mousemove", (e) => {
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    const interactive = el && (el.closest(".dock-frame") || el.closest(".dock-bottom-native") || el.closest(".ctx-menu") || el.closest(".confirm-overlay"));
+    const interactive =
+      el &&
+      (el.closest(".dock-frame") ||
+        el.closest(".dock-bottom-native") ||
+        el.closest(".ctx-menu") ||
+        el.closest(".confirm-overlay"));
     window.api?.setIgnoreMouse?.(!interactive);
   });
 
@@ -327,29 +391,42 @@ function bindChrome() {
     $("#jiraEmailWrap").hidden = !$("#usePersonalJira").checked;
   });
   $("#confirmCancel").addEventListener("click", closeConfirm);
-  $("#confirmOverlay").addEventListener("click", (e) => { if (e.target.id === "confirmOverlay") closeConfirm(); });
+  $("#confirmOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "confirmOverlay") closeConfirm();
+  });
   document.addEventListener("click", (e) => {
     if (!e.target.closest?.(".link-icon-select")) {
-      $$(".link-icon-select.is-open").forEach((el) => el.classList.remove("is-open"));
+      $$(".link-icon-select.is-open").forEach((el) =>
+        el.classList.remove("is-open"),
+      );
     }
   });
 }
 function bindFilters() {
-  $$("[data-jira-filter]").forEach((btn) => btn.addEventListener("click", () => {
-    state.jiraFilter = btn.dataset.jiraFilter;
-    $$("[data-jira-filter]").forEach((b) => b.classList.toggle("is-on", b === btn));
-    renderIssues();
-  }));
-  $$("[data-pr-filter]").forEach((btn) => btn.addEventListener("click", () => {
-    state.prFilter = btn.dataset.prFilter;
-    $$("[data-pr-filter]").forEach((b) => b.classList.toggle("is-on", b === btn));
-    renderPRs();
-  }));
+  $$("[data-jira-filter]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      state.jiraFilter = btn.dataset.jiraFilter;
+      $$("[data-jira-filter]").forEach((b) =>
+        b.classList.toggle("is-on", b === btn),
+      );
+      renderIssues();
+    }),
+  );
+  $$("[data-pr-filter]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      state.prFilter = btn.dataset.prFilter;
+      $$("[data-pr-filter]").forEach((b) =>
+        b.classList.toggle("is-on", b === btn),
+      );
+      renderPRs();
+    }),
+  );
 }
 function applyTheme(mode) {
   document.body.classList.toggle("dark-mode", mode === "dark");
   localStorage.setItem("theme", mode);
-  $("#ctxTheme").textContent = mode === "dark" ? "☀ 라이트 모드" : "🌙 다크 모드";
+  $("#ctxTheme").textContent =
+    mode === "dark" ? "☀ 라이트 모드" : "🌙 다크 모드";
 }
 function toggleTheme() {
   applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
@@ -403,7 +480,13 @@ async function loadSettings() {
     email: jira.email || "",
     login: "",
   };
-  state.gh = { baseUrl: gh.baseUrl || "", token: gh.token || "", repos: Array.isArray(gh.repos) ? gh.repos : [], login: "", avatarUrl: "" };
+  state.gh = {
+    baseUrl: gh.baseUrl || "",
+    token: gh.token || "",
+    repos: Array.isArray(gh.repos) ? gh.repos : [],
+    login: "",
+    avatarUrl: "",
+  };
   state.reposDraft = [...state.gh.repos];
   state.dockCharacter = localStorage.getItem("dockCharacter") || "quokka";
   state.userName = localStorage.getItem("userName") || "goeun";
@@ -411,7 +494,8 @@ async function loadSettings() {
 }
 async function fetchIssues({ silent = false } = {}) {
   if (!state.jira.baseUrl || !state.jira.pat) {
-    if (!silent) setLoading("jira", "설정에서 Jira URL/PAT를 먼저 입력해줘요 🐾");
+    if (!silent)
+      setLoading("jira", "설정에서 Jira URL/PAT를 먼저 입력해줘요 🐾");
     updateCounts();
     return;
   }
@@ -448,13 +532,18 @@ async function ensurePinnedIssues() {
 
 async function fetchPRs({ silent = false } = {}) {
   if (!state.gh.baseUrl || !state.gh.token || !state.gh.repos?.length) {
-    if (!silent) setLoading("pr", "설정에서 GitHub URL/TOKEN/레포를 먼저 입력해줘요 🐇");
+    if (!silent)
+      setLoading("pr", "설정에서 GitHub URL/TOKEN/레포를 먼저 입력해줘요 🐇");
     updateCounts();
     return;
   }
   if (!silent) setLoading("pr", "GitHub PR 불러오는 중...");
   try {
-    const result = await window.api?.fetchGHPRs?.(state.gh.baseUrl, state.gh.token, state.gh.repos);
+    const result = await window.api?.fetchGHPRs?.(
+      state.gh.baseUrl,
+      state.gh.token,
+      state.gh.repos,
+    );
     state.prs = Array.isArray(result?.prs) ? result.prs : [];
     state.gh.login = result?.login || "";
     state.gh.avatarUrl = result?.avatarUrl || "";
@@ -478,7 +567,9 @@ function updateCounts() {
   $("#nTodo").textContent = counts.todo;
   $("#nWip").textContent = counts.wip;
   $("#nDone").textContent = counts.done;
-  $("#nPin").textContent = state.issues.filter((issue) => state.pins.has(issue.key)).length;
+  $("#nPin").textContent = state.issues.filter((issue) =>
+    state.pins.has(issue.key),
+  ).length;
   $("#tabJiraCount").textContent = state.issues.length;
   const open = state.prs.filter((p) => p.stateGroup === "open").length;
   const done = state.prs.length - open;
@@ -496,7 +587,10 @@ function renderIssues() {
     if (state.jiraFilter === "pin") return state.pins.has(issue.key);
     return issueCat(issue) === state.jiraFilter;
   });
-  if (query) items = items.filter((issue) => matchesQuery(issueSearchFields(issue), query));
+  if (query)
+    items = items.filter((issue) =>
+      matchesQuery(issueSearchFields(issue), query),
+    );
   list.innerHTML = "";
   if (!items.length) {
     list.innerHTML = `<div class="empty-inline">${state.issues.length ? "조건에 맞는 이슈가 없어요" : "이슈가 없어요 🎉"}</div>`;
@@ -509,55 +603,39 @@ function createIssueCard(issue) {
   const cat = issueCat(issue);
   const type = typeInfo(issue.issueType);
   const query = $("#jiraSearch")?.value.trim() || "";
-  const card = document.createElement("article");
-  card.className = "issue-card";
-  card.innerHTML = `
-    <div class="issue-top">
-      <button class="type-icon ${type.cls}" type="button" title="키 복사">${type.icon}</button>
-      <div class="issue-main">
-        <div class="issue-key">${hl(key, query)}</div>
-        <div class="issue-title issue-title-link">${hl(issue.summary, query)}</div>
-      </div>
-      <div class="pin"><button type="button" title="핀">${state.pins.has(key) ? ICONS.pin : ICONS.pin.replace('fill', '')}</button></div>
-    </div>
-    <div class="meta-row">
-      <span class="badge ${badgeClass(cat)}">${esc(issue.status || cat)}</span>
-      <span class="badge gray">${esc(issue.priority || "Medium")}</span>
-      <span class="badge gray">${esc(fmtDate(issue.updated))}</span>
-    </div>
-    <div class="card-section-head"><span>Branch</span><button class="mini-btn branch-edit-toggle" type="button" aria-label="브랜치 추가">${ICONS.edit}</button></div>
-    <div class="link-stack branch-stack"></div>
-    <div class="branch-edit-area">
-      <div class="branch-add-row">
-        <input class="branch-input" type="text" placeholder="feature/${esc(key)}/base" />
-        <button class="branch-save-btn row-btn" type="button" aria-label="저장">${ICONS.check}</button>
-      </div>
-    </div>
-    <div class="memo-box memo-toggle">
-      <div class="memo-label">${ICONS.doc} Memo</div>
-      <div class="memo-edit-actions">
-        <button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>
-      </div>
-      <div class="memo-text">${state.memos[key] ? hl(state.memos[key], query) : ""}</div>
-      <div class="memo-inline-edit">
-        <textarea class="memo-inline-textarea" aria-label="메모 수정">${esc(state.memos[key] || "")}</textarea>
-      </div>
-      <div class="saved-links"></div>
-      <div class="saved-link-add-panel">
-        <div class="link-edit-head"><span class="link-edit-title">링크 관리</span></div>
-        <div class="link-manage-list"></div>
-        <div class="link-new-row">
-          <button class="link-ico" type="button" aria-label="새 링크 아이콘">${ICONS.link}</button>
-          <input class="link-input new-link-input" type="text" placeholder="https://..." />
-          <button class="link-manage-btn add-link-btn" type="button" aria-label="추가">${ICONS.check}</button>
-        </div>
-      </div>
-    </div>`;
+  const card = cloneTemplate("issueCardTemplate");
+
+  const typeButton = $(".type-icon", card);
+  typeButton.classList.add(type.cls);
+  typeButton.innerHTML = type.icon;
+
+  $(".issue-key", card).innerHTML = hl(key, query);
+  $(".issue-title", card).innerHTML = hl(issue.summary, query);
+  $(".pin button", card).innerHTML = state.pins.has(key)
+    ? ICONS.pin
+    : ICONS.pin.replace("fill", "");
+
+  const status = $(".issue-status", card);
+  status.classList.add(badgeClass(cat));
+  status.textContent = issue.status || cat;
+  $(".issue-priority", card).textContent = issue.priority || "Medium";
+  $(".issue-date", card).textContent = fmtDate(issue.updated);
+  $(".branch-input", card).placeholder = `feature/${key}/base`;
+  $(".memo-label", card).innerHTML = `${ICONS.doc} Memo`;
+  $(".memo-text", card).innerHTML = state.memos[key]
+    ? hl(state.memos[key], query)
+    : "";
+  $(".memo-inline-textarea", card).value = state.memos[key] || "";
+
   renderBranches(card, issue);
   renderLinks(card, issue);
 
-  $(".issue-title-link", card).addEventListener("click", () => window.api?.openUrl?.(issue.url));
-  $(".type-icon", card).addEventListener("click", () => navigator.clipboard?.writeText(key));
+  $(".issue-title-link", card).addEventListener("click", () =>
+    window.api?.openUrl?.(issue.url),
+  );
+  typeButton.addEventListener("click", () =>
+    navigator.clipboard?.writeText(key),
+  );
   $(".pin button", card).addEventListener("click", async (e) => {
     e.stopPropagation();
     state.pins.has(key) ? state.pins.delete(key) : state.pins.add(key);
@@ -566,19 +644,20 @@ function createIssueCard(issue) {
   });
   $(".branch-edit-toggle", card).addEventListener("click", (e) => {
     e.stopPropagation();
+    const button = e.currentTarget;
     const isEditing = card.classList.contains("is-branch-editing");
     if (isEditing) {
       card.classList.remove("is-branch-editing");
-      e.target.innerHTML = ICONS.edit;
+      button.innerHTML = ICONS.edit;
     } else {
       card.classList.add("is-branch-editing");
-      e.target.innerHTML = ICONS.check;
-      $(".branch-input", card).focus();
+      button.innerHTML = ICONS.check;
+      $(".branch-add-row .branch-input", card).focus();
     }
   });
   $(".branch-save-btn", card).addEventListener("click", async (e) => {
     e.stopPropagation();
-    const input = $(".branch-input", card);
+    const input = $(".branch-add-row .branch-input", card);
     const val = input.value.trim();
     if (!val) {
       showSpeech("브랜치 이름을 입력해주세요");
@@ -592,10 +671,10 @@ function createIssueCard(issue) {
     renderBranches(card, issue);
     showSpeech(`${key} 브랜치를 저장했어요`);
   });
-  $(".branch-input", card).addEventListener("keydown", (e) => { 
-    if (e.key === "Enter") $(".branch-save-btn", card).click(); 
+  $(".branch-input", card).addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $(".branch-save-btn", card).click();
     if (e.key === "Escape") {
-      $(".branch-input", card).value = "";
+      $(".branch-add-row .branch-input", card).value = "";
       card.classList.remove("is-branch-editing");
       $(".branch-edit-toggle", card).innerHTML = ICONS.edit;
     }
@@ -605,23 +684,30 @@ function createIssueCard(issue) {
     const input = $(".new-link-input", card);
     const url = input.value.trim();
     if (!url) return;
-    const iconId = $(".link-new-row .link-ico-current", card)?.dataset.iconId || detectIconId(url);
-    state.links[key] = [...(state.links[key] || []), { url, label: linkLabel(url), iconId }];
+    const iconId =
+      $(".link-new-row .link-ico-current", card)?.dataset.iconId ||
+      detectIconId(url);
+    state.links[key] = [
+      ...(state.links[key] || []),
+      { url, label: linkLabel(url), iconId },
+    ];
     input.value = "";
     await saveLinks();
     renderLinks(card, issue);
   });
-  $(".new-link-input", card).addEventListener("keydown", (e) => { if (e.key === "Enter") $(".add-link-btn", card).click(); });
+  $(".new-link-input", card).addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $(".add-link-btn", card).click();
+  });
   return card;
 }
 function bindMemoToggle(card, key) {
   const toggle = $(".memo-link-toggle", card);
   if (!toggle) return;
-  
+
   toggle.addEventListener("click", async (e) => {
     e.stopPropagation();
     const isEditing = card.classList.contains("is-memo-editing");
-    
+
     if (!isEditing) {
       // 편집 모드 시작
       card.classList.add("is-memo-editing");
@@ -631,28 +717,32 @@ function bindMemoToggle(card, key) {
         <button class="memo-save-btn row-btn" type="button" aria-label="저장">${ICONS.check}</button>
         <button class="memo-cancel-btn row-btn" type="button" aria-label="취소">${ICONS.x}</button>
       `;
-      
+
       $(".memo-save-btn", card).addEventListener("click", async (e) => {
         e.stopPropagation();
         const textarea = $(".memo-inline-textarea", card);
         state.memos[key] = textarea.value.trim();
         if (!state.memos[key]) delete state.memos[key];
         await saveMemos();
-        $(".memo-text", card).innerHTML = state.memos[key] ? hl(state.memos[key], $("#jiraSearch")?.value.trim() || "") : "";
+        $(".memo-text", card).innerHTML = state.memos[key]
+          ? hl(state.memos[key], $("#jiraSearch")?.value.trim() || "")
+          : "";
         card.classList.remove("is-memo-editing");
         $(".saved-link-add-panel", card).classList.remove("is-open");
-        $(".memo-edit-actions", card).innerHTML = `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
+        $(".memo-edit-actions", card).innerHTML =
+          `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
         bindMemoToggle(card, key);
         showSpeech("메모를 저장했어요");
       });
-      
+
       $(".memo-cancel-btn", card).addEventListener("click", (e) => {
         e.stopPropagation();
         const textarea = $(".memo-inline-textarea", card);
         textarea.value = state.memos[key] || "";
         card.classList.remove("is-memo-editing");
         $(".saved-link-add-panel", card).classList.remove("is-open");
-        $(".memo-edit-actions", card).innerHTML = `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
+        $(".memo-edit-actions", card).innerHTML =
+          `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
         bindMemoToggle(card, key);
       });
     }
@@ -665,23 +755,15 @@ function renderBranches(card, issue) {
   const arr = state.branches[key] || [];
   stack.innerHTML = "";
   arr.forEach((branch, idx) => {
-    const row = document.createElement("div");
-    row.className = "linked-row branch-row";
-    row.innerHTML = `
-      <div class="branch-read">
-        <span class="linked-dot branch"></span>
-        <span><strong>${hl(branch, query)}</strong></span>
-        <span class="row-actions">
-          <button class="row-btn copy" type="button" aria-label="복사">${ICONS.branch}</button>
-          <button class="row-btn edit" type="button" aria-label="수정">${ICONS.edit}</button>
-          <button class="row-btn danger" type="button" aria-label="삭제">${ICONS.del}</button>
-        </span>
-      </div>
-      <div class="branch-edit-line" hidden>
-        <input class="branch-input branch-edit-input" type="text" value="${esc(branch)}" />
-        <button class="row-btn save" type="button" aria-label="저장">${ICONS.check}</button>
-        <button class="row-btn cancel" type="button" aria-label="취소">${ICONS.x}</button>
-      </div>`;
+    const row = cloneTemplate("branchRowTemplate");
+    $(".branch-name", row).innerHTML = hl(branch, query);
+    $(".branch-edit-input", row).value = branch;
+    $(".copy", row).innerHTML = ICONS.branch;
+    $(".edit", row).innerHTML = ICONS.edit;
+    $(".danger", row).innerHTML = ICONS.del;
+    $(".save", row).innerHTML = ICONS.check;
+    $(".cancel", row).innerHTML = ICONS.x;
+
     const read = $(".branch-read", row);
     const editLine = $(".branch-edit-line", row);
     const editInput = $(".branch-edit-input", row);
@@ -729,6 +811,20 @@ function renderBranches(card, issue) {
     stack.appendChild(row);
   });
 }
+
+function fillIconPicker(wrap, selectedId = "icoLink") {
+  const picker = $(".link-picker", wrap);
+  picker.innerHTML = "";
+  LINK_ICON_OPTIONS.forEach((item) => {
+    const btn = document.createElement("button");
+    btn.className = `link-ico ${item.id === selectedId ? "is-picked" : ""}`;
+    btn.type = "button";
+    btn.dataset.iconId = item.id;
+    btn.title = item.label;
+    btn.innerHTML = item.icon;
+    picker.appendChild(btn);
+  });
+}
 function bindIconPicker(wrap, onPick) {
   const current = $(".link-ico-current", wrap);
   const picker = $(".link-picker", wrap);
@@ -745,10 +841,14 @@ function bindIconPicker(wrap, onPick) {
       e.preventDefault();
       e.stopPropagation();
       const iconId = btn.dataset.iconId || "icoLink";
-      const item = LINK_ICON_OPTIONS.find((option) => option.id === iconId) || LINK_ICON_OPTIONS[0];
+      const item =
+        LINK_ICON_OPTIONS.find((option) => option.id === iconId) ||
+        LINK_ICON_OPTIONS[0];
       current.innerHTML = item.icon;
       current.dataset.iconId = iconId;
-      $$("[data-icon-id]", picker).forEach((b) => b.classList.toggle("is-picked", b === btn));
+      $$("[data-icon-id]", picker).forEach((b) =>
+        b.classList.toggle("is-picked", b === btn),
+      );
       wrap.classList.remove("is-open");
       onPick?.(iconId);
     });
@@ -764,27 +864,28 @@ function renderLinks(card, issue) {
   manage.innerHTML = "";
   arr.forEach((link, idx) => {
     const iconId = detectIconId(link.url, link.iconId);
-    const chip = document.createElement("span");
-    chip.className = "saved-link";
-    chip.innerHTML = `${linkIcon(link.url, iconId)}<span class="saved-link-text">${hl(link.label || linkLabel(link.url), query)}</span>`;
-    chip.addEventListener("click", (e) => { e.stopPropagation(); window.api?.openUrl?.(link.url); });
+    const chip = cloneTemplate("savedLinkTemplate");
+    $(".saved-link-icon", chip).innerHTML = linkIcon(link.url, iconId);
+    $(".saved-link-text", chip).innerHTML = hl(
+      link.label || linkLabel(link.url),
+      query,
+    );
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.api?.openUrl?.(link.url);
+    });
     saved.appendChild(chip);
 
-    const item = document.createElement("div");
-    item.className = "link-manage-item";
-    item.innerHTML = `
-      <div class="link-icon-select">
-        <button class="link-ico link-ico-current" type="button" data-icon-id="${esc(iconId)}" aria-label="링크 아이콘 선택">${linkIcon(link.url, iconId)}</button>
-        ${iconPickerHtml(iconId)}
-      </div>
-      <div class="link-inputs">
-        <input class="link-input link-label-input" type="text" value="${esc(link.label || linkLabel(link.url))}" placeholder="링크 이름" />
-        <input class="link-input link-url-input" type="text" value="${esc(link.url)}" placeholder="URL" />
-      </div>
-      <div class="link-manage-actions">
-        <button class="link-manage-btn save" type="button" aria-label="저장">${ICONS.check}</button>
-        <button class="link-manage-btn danger" type="button" aria-label="삭제">${ICONS.del}</button>
-      </div>`;
+    const item = cloneTemplate("linkManageItemTemplate");
+    const current = $(".link-ico-current", item);
+    current.dataset.iconId = iconId;
+    current.innerHTML = linkIcon(link.url, iconId);
+    fillIconPicker($(".link-icon-select", item), iconId);
+    $(".link-label-input", item).value = link.label || linkLabel(link.url);
+    $(".link-url-input", item).value = link.url;
+    $(".save", item).innerHTML = ICONS.check;
+    $(".danger", item).innerHTML = ICONS.del;
+
     let selectedIconId = iconId;
     bindIconPicker($(".link-icon-select", item), (nextIconId) => {
       selectedIconId = nextIconId;
@@ -794,7 +895,11 @@ function renderLinks(card, issue) {
       const url = $(".link-url-input", item).value.trim();
       const label = $(".link-label-input", item).value.trim();
       if (!url) return;
-      state.links[key][idx] = { url, label: label || linkLabel(url), iconId: selectedIconId };
+      state.links[key][idx] = {
+        url,
+        label: label || linkLabel(url),
+        iconId: selectedIconId,
+      };
       await saveLinks();
       renderLinks(card, issue);
       showSpeech("링크를 저장했어요");
@@ -814,22 +919,25 @@ function renderLinks(card, issue) {
 
   const newRow = $(".link-new-row", card);
   if (newRow && !newRow.dataset.pickerBound) {
-    const oldButton = $(".link-ico", newRow);
-    const selector = document.createElement("div");
-    selector.className = "link-icon-select";
-    selector.innerHTML = `<button class="link-ico link-ico-current" type="button" data-icon-id="icoLink" aria-label="새 링크 아이콘 선택">${ICONS.link}</button>${iconPickerHtml("icoLink")}`;
-    oldButton.replaceWith(selector);
+    const selector = cloneTemplate("linkIconSelectTemplate");
+    const current = $(".link-ico-current", selector);
+    current.dataset.iconId = "icoLink";
+    current.innerHTML = ICONS.link;
+    fillIconPicker(selector, "icoLink");
+    $(".link-icon-placeholder", newRow).replaceWith(selector);
     newRow.dataset.pickerBound = "true";
     bindIconPicker(selector);
   }
 }
-
 function renderPRs() {
   updateCounts();
   const list = $("#prList");
   const query = $("#prSearch").value.trim().toLowerCase();
-  let items = state.prs.filter((pr) => state.prFilter === "all" ? true : pr.stateGroup === state.prFilter);
-  if (query) items = items.filter((pr) => matchesQuery(prSearchFields(pr), query));
+  let items = state.prs.filter((pr) =>
+    state.prFilter === "all" ? true : pr.stateGroup === state.prFilter,
+  );
+  if (query)
+    items = items.filter((pr) => matchesQuery(prSearchFields(pr), query));
   list.innerHTML = "";
   if (!items.length) {
     list.innerHTML = `<div class="empty-inline">${state.prs.length ? "조건에 맞는 PR이 없어요" : "PR이 없어요 🎉"}</div>`;
@@ -839,21 +947,57 @@ function renderPRs() {
 }
 function createPRCard(pr) {
   const query = $("#prSearch")?.value.trim() || "";
-  const card = document.createElement("article");
-  card.className = "pr-card";
+  const card = cloneTemplate("prCardTemplate");
   const statusClass = pr.stateGroup === "open" ? "doing" : "done";
-  const jiraKey = (pr.title + " " + pr.head).match(/[A-Z][A-Z0-9]+-\d+/)?.[0] || "";
-  card.innerHTML = `
-    <div class="pr-top"><div class="type-icon pr">PR</div><div class="pr-main"><div class="pr-repo">${hl(pr.owner, query)} / ${hl(pr.repo, query)}</div><div class="pr-title">${hl(pr.title, query)}</div></div></div>
-    <div class="meta-row"><span class="badge ${statusClass}">${esc(pr.stateLabel || "")}</span><span class="badge gray">#${esc(pr.number)}</span><span class="badge gray">${esc(fmtDate(pr.updatedAt))}</span></div>
-    <div class="link-stack">
-      ${jiraKey ? `<div class="linked-row"><span class="linked-dot"></span><span>Jira <strong>${esc(jiraKey)}</strong> 와 연결됨</span></div>` : ""}
-      <div class="linked-row"><span class="linked-dot branch"></span><span><strong>${hl(pr.head || "-", query)}</strong> → ${hl(pr.base || "-", query)}</span></div>
-    </div>`;
-  card.addEventListener("click", () => window.api?.openUrl?.(pr.url));
+  const jiraKey =
+    (pr.title + " " + pr.head).match(/[A-Z][A-Z0-9]+-\d+/)?.[0] || "";
+  const prUrl = pr.url || "";
+  const diffUrl = prUrl ? `${prUrl}/files` : "";
+
+  $(".pr-repo", card).innerHTML =
+    `${hl(pr.owner, query)} / ${hl(pr.repo, query)}`;
+  $(".pr-title", card).innerHTML = hl(pr.title, query);
+  const status = $(".pr-state", card);
+  status.classList.add(statusClass);
+  status.textContent = pr.stateLabel || "";
+  $(".pr-number", card).textContent = `#${pr.number || ""}`;
+  $(".pr-date", card).textContent = fmtDate(pr.updatedAt);
+
+  $(".pr-title", card).addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (prUrl) window.api?.openUrl?.(prUrl);
+  });
+
+  $(".pr-copy-btn", card).addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!prUrl) return;
+    navigator.clipboard?.writeText(prUrl);
+    showSpeech("PR 링크를 복사했어요");
+  });
+
+  const stack = $(".pr-link-stack", card);
+  if (jiraKey) {
+    const jiraRow = cloneTemplate("prJiraRowTemplate");
+    $(".jira-key", jiraRow).textContent = jiraKey;
+    jiraRow.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const baseUrl = String(state.jira.baseUrl || "").replace(/\/$/, "");
+      if (baseUrl) window.api?.openUrl?.(`${baseUrl}/browse/${jiraKey}`);
+    });
+    stack.appendChild(jiraRow);
+  }
+
+  const branchRow = cloneTemplate("prBranchRowTemplate");
+  $(".pr-head", branchRow).innerHTML = hl(pr.head || "-", query);
+  $(".pr-base", branchRow).innerHTML = hl(pr.base || "-", query);
+  branchRow.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (diffUrl) window.api?.openUrl?.(diffUrl);
+  });
+  stack.appendChild(branchRow);
+
   return card;
 }
-
 function loadSettingsIntoForm() {
   $("#jiraUrl").value = state.jira.baseUrl || "";
   $("#jiraToken").value = state.jira.pat || "";
@@ -868,39 +1012,86 @@ function loadSettingsIntoForm() {
   $("#dockCharacter").value = state.dockCharacter || "quokka";
   $("#userName").value = state.userName || "goeun";
   state.reposDraft = [...(state.gh.repos || [])];
+  state.repoEditingIndex = null;
   renderRepoList();
 }
 function renderRepoList() {
   const list = $("#repoList");
+  const addBtn = $("#addRepoBtn");
   list.innerHTML = "";
+  if (addBtn) {
+    addBtn.innerHTML =
+      state.repoEditingIndex === null
+        ? ICONS.check.replace("i-check", "i-plus")
+        : ICONS.check;
+    addBtn.setAttribute(
+      "aria-label",
+      state.repoEditingIndex === null ? "추가" : "수정 저장",
+    );
+  }
+
   if (!state.reposDraft.length) {
     list.innerHTML = `<div class="empty-inline">등록된 레포가 없어요</div>`;
     return;
   }
+
   state.reposDraft.forEach((repo, idx) => {
-    const item = document.createElement("div");
-    item.className = "repo-item";
-    const branches = Array.isArray(repo.branches) ? repo.branches : repo.base ? [repo.base] : [];
-    item.innerHTML = `
-      <div>
-        <strong>${esc(repo.owner)}/${esc(repo.repo)}</strong>
-        <div class="repo-meta">${branches.map((b) => `<span class="repo-tag base">${esc(b)}</span>`).join("")}</div>
-      </div>
-      <div class="repo-actions">
-        <button class="mini-btn edit-repo" type="button" aria-label="수정">${ICONS.edit}</button>
-        <button class="mini-btn danger delete-repo" type="button" aria-label="삭제">${ICONS.del}</button>
-      </div>`;
-    
+    const item = cloneTemplate("repoItemTemplate");
+    const branches = Array.isArray(repo.branches)
+      ? repo.branches
+      : repo.base
+        ? [repo.base]
+        : [];
+
+    item.classList.toggle("is-editing", state.repoEditingIndex === idx);
+    $(".repo-name", item).textContent = `${repo.owner}/${repo.repo}`;
+    $(".repo-meta", item).innerHTML = branches
+      .map((b) => `<span class="repo-tag base">${esc(b)}</span>`)
+      .join("");
+    $(".edit-repo", item).innerHTML =
+      state.repoEditingIndex === idx ? ICONS.check : ICONS.edit;
+    $(".delete-repo", item).innerHTML = ICONS.del;
+
     $(".edit-repo", item).addEventListener("click", () => {
-      $("#repoFullName").value = `${repo.owner}/${repo.repo}`;
-      $("#repoBranches").value = branches.join(",");
-      state.reposDraft.splice(idx, 1);
-      renderRepoList();
-      $("#repoFullName").focus();
+      $(".repo-edit-full", item).value = `${repo.owner}/${repo.repo}`;
+      $(".repo-edit-branches", item).value = branches.join(",");
+      item.classList.add("is-editing");
+      $(".repo-edit-full", item).focus();
     });
-    
+    $(".cancel-repo", item).addEventListener("click", () => {
+      item.classList.remove("is-editing");
+    });
+    $(".save-repo", item).addEventListener("click", () => {
+      const full = $(".repo-edit-full", item).value.trim();
+      if (!full.includes("/")) {
+        showSpeech("레포는 owner/repo 형식으로 넣어줘요");
+        return;
+      }
+      const [owner, repoName] = full.split("/");
+      const nextBranches = $(".repo-edit-branches", item)
+        .value.split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+      state.reposDraft[idx] = {
+        owner: owner.trim(),
+        repo: repoName.trim(),
+        branches: nextBranches,
+      };
+      renderRepoList();
+    });
+
     $(".delete-repo", item).addEventListener("click", () => {
       state.reposDraft.splice(idx, 1);
+      if (state.repoEditingIndex === idx) {
+        state.repoEditingIndex = null;
+        $("#repoFullName").value = "";
+        $("#repoBranches").value = "";
+      } else if (
+        state.repoEditingIndex !== null &&
+        state.repoEditingIndex > idx
+      ) {
+        state.repoEditingIndex -= 1;
+      }
       renderRepoList();
     });
     list.appendChild(item);
@@ -908,10 +1099,24 @@ function renderRepoList() {
 }
 function addRepoFromForm() {
   const full = $("#repoFullName").value.trim();
-  if (!full.includes("/")) return showSpeech("레포는 owner/repo 형식으로 넣어줘요");
-  const [owner, repo] = full.split("/");
-  const branches = $("#repoBranches").value.split(",").map((v) => v.trim()).filter(Boolean);
-  state.reposDraft.push({ owner, repo, branches });
+  if (!full.includes("/"))
+    return showSpeech("레포는 owner/repo 형식으로 넣어줘요");
+  const [owner, repo] = full.split("/").map((v) => v.trim());
+  if (!owner || !repo) return showSpeech("레포는 owner/repo 형식으로 넣어줘요");
+  const branches = $("#repoBranches")
+    .value.split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  const nextRepo = { owner, repo, branches };
+  if (state.repoEditingIndex !== null) {
+    state.reposDraft[state.repoEditingIndex] = nextRepo;
+    state.repoEditingIndex = null;
+    showSpeech("레포 설정을 수정했어요");
+  } else {
+    state.reposDraft.push(nextRepo);
+    showSpeech("레포를 추가했어요");
+  }
   $("#repoFullName").value = "";
   $("#repoBranches").value = "";
   renderRepoList();
@@ -922,7 +1127,9 @@ async function saveSettingsFromForm() {
     pat: $("#jiraToken").value.trim(),
     doneDays: Number($("#doneDays").value || 60),
     usePersonalJira: !!$("#usePersonalJira")?.checked,
-    email: $("#usePersonalJira")?.checked ? ($("#jiraEmail")?.value.trim() || "") : "",
+    email: $("#usePersonalJira")?.checked
+      ? $("#jiraEmail")?.value.trim() || ""
+      : "",
   };
   const gh = {
     baseUrl: $("#githubUrl").value.trim(),
@@ -942,7 +1149,10 @@ async function saveSettingsFromForm() {
   updateDockVisibility();
   showSpeech("설정 저장 완료! 메인으로 돌아왔어요");
   setView(state.previousView || "jira");
-  await Promise.allSettled([fetchIssues({ silent: true }), fetchPRs({ silent: true })]);
+  await Promise.allSettled([
+    fetchIssues({ silent: true }),
+    fetchPRs({ silent: true }),
+  ]);
 }
 
 let confirmOkHandler = null;
