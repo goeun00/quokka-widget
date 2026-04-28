@@ -25,15 +25,15 @@
     <section class="dock-frame" id="dockFrame">
       <section class="dock-panel">
         <header class="dock-header">
-          <div class="avatar" id="avatarBtn" aria-label="profile"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M8 13c-2.2-4.8-2.6-8.2-.8-9 1.7-.7 3.8 2.4 4.8 6.6C13 6.4 15.1 3.3 16.8 4c1.8.8 1.4 4.2-.8 9"/><path d="M6.5 13.5c0 4 2.4 6.5 5.5 6.5s5.5-2.5 5.5-6.5c0-2.3-2.4-3.8-5.5-3.8s-5.5 1.5-5.5 3.8Z"/><path d="M9.5 14.5h.01M14.5 14.5h.01M10.5 17c.8.6 2.2.6 3 0"/></svg></span></div>
+          <div class="avatar" id="avatarBtn" aria-label="profile"><span class="svg-icon i-quokka-face"></span></div>
           <div class="title-area">
             <div class="eyebrow">Jira + Git</div>
             <div class="title" id="dynamicTitle">@goeun · Jira</div>
           </div>
           <div class="actions">
-            <button class="icon-btn" type="button" id="refreshBtn" aria-label="refresh"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M20 6v5h-5"/><path d="M19 11a7 7 0 1 0-2.1 5"/></svg></span></button>
-            <button class="icon-btn" type="button" id="settingsBtn" aria-label="settings"><span class="svg-icon icon-settings"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-2 3.4-.2-.1a1.8 1.8 0 0 0-2.1.4l-.1.1h-4l-.1-.1a1.8 1.8 0 0 0-2.1-.4l-.2.1-2-3.4.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.6-1.2H6v-4h.1A1.8 1.8 0 0 0 7.7 8a1.8 1.8 0 0 0-.4-2l-.1-.1 2-3.4.2.1a1.8 1.8 0 0 0 2.1-.4l.1-.1h4l.1.1a1.8 1.8 0 0 0 2.1.4l.2-.1 2 3.4-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.6 1.2h.1v4h-.1a1.8 1.8 0 0 0-1.7 1.2Z"/></svg></span></button>
-            <button class="icon-btn" type="button" id="closePanelBtn" aria-label="close"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span></button>
+            <button class="icon-btn" type="button" id="refreshBtn" aria-label="refresh"><span class="svg-icon i-refresh"></span></button>
+            <button class="icon-btn" type="button" id="settingsBtn" aria-label="settings"><span class="svg-icon i-settings"></span></button>
+            <button class="icon-btn" type="button" id="closePanelBtn" aria-label="close"><span class="svg-icon i-x"></span></button>
           </div>
         </header>
 
@@ -49,7 +49,7 @@
             <button class="summary-card" type="button" data-jira-filter="done"><span class="summary-label">DONE</span><span class="summary-num" id="nDone">0</span></button>
             <button class="summary-card" type="button" data-jira-filter="pin"><span class="summary-label">PIN</span><span class="summary-num" id="nPin">0</span></button>
           </section>
-          <label class="search"><span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></span><input class="search-input-native" id="jiraSearch" type="text" placeholder="이슈 / 브랜치 / 메모 검색..." /></label>
+          <label class="search"><span class="svg-icon i-search"></span><input class="search-input-native" id="jiraSearch" type="text" placeholder="이슈 / 브랜치 / 메모 검색..." /></label>
           <div class="state" id="jiraState" hidden></div>
           <section class="issue-list" id="issueList"></section>
         </section>
@@ -60,7 +60,7 @@
             <button class="summary-card" type="button" data-pr-filter="open"><span class="summary-label">OPEN</span><span class="summary-num" id="nPrOpen">0</span></button>
             <button class="summary-card" type="button" data-pr-filter="done"><span class="summary-label">DONE</span><span class="summary-num" id="nPrDone">0</span></button>
           </section>
-          <label class="search"><span class="svg-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></span><input class="search-input-native" id="prSearch" type="text" placeholder="PR 제목 / 브랜치 / 레포 검색..." /></label>
+          <label class="search"><span class="svg-icon i-search"></span><input class="search-input-native" id="prSearch" type="text" placeholder="PR 제목 / 브랜치 / 레포 검색..." /></label>
           <div class="state" id="prState" hidden></div>
           <section class="pr-list" id="prList"></section>
         </section>
@@ -101,7 +101,7 @@
                   <div class="repo-row">
                     <input class="field-input" id="repoFullName" type="text" placeholder="org-publisher/starro" aria-label="레포지토리 입력" />
                     <input class="field-input" id="repoBranches" type="text" placeholder="dev,main,stg" aria-label="base 브랜치 입력" />
-                    <button class="mini-btn" id="addRepoBtn" type="button" aria-label="추가"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button>
+                    <button class="mini-btn" id="addRepoBtn" type="button" aria-label="추가"><span class="svg-icon i-plus"></span></button>
                   </div>
                   <div class="repo-list" id="repoList"></div>
                 </div>
@@ -111,16 +111,185 @@
           </div>
         </section>
       </section>
-
-      <footer class="dock-bottom"><div class="speech" id="speech">쿼카를 누르면 Jira 이슈, 토끼를 누르면 PR을 열어요</div><div class="character"><span class="svg-icon"><svg viewBox="0 0 24 24"><path d="M8 13c-2.2-4.8-2.6-8.2-.8-9 1.7-.7 3.8 2.4 4.8 6.6C13 6.4 15.1 3.3 16.8 4c1.8.8 1.4 4.2-.8 9"/><path d="M6.5 13.5c0 4 2.4 6.5 5.5 6.5s5.5-2.5 5.5-6.5c0-2.3-2.4-3.8-5.5-3.8s-5.5 1.5-5.5 3.8Z"/><path d="M9.5 14.5h.01M14.5 14.5h.01M10.5 17c.8.6 2.2.6 3 0"/></svg></span></div></footer>
+      <div class="speech" id="speech">쿼카를 누르면 Jira 이슈, 토끼를 누르면 PR을 열어요</div>
     </section>
 
     <div class="dock-bottom-native" id="dock">
+
       <button class="dock-handle" id="dockHandle" type="button" aria-label="Dock 이동">⋮⋮</button>
-      <button class="dock-native-btn" id="dockBtn" type="button" aria-label="Jira 패널 열기"><img src="assets/quokka.webp" alt="" /></button>
-      <button class="dock-native-btn" id="ghDockBtn" type="button" aria-label="GitHub 패널 열기"><img src="assets/rabit.webp" alt="" /></button>
+      <button class="dock-native-btn" id="dockBtn" type="button"><img src="assets/quokka.webp" alt="" /></button>
+      <button class="dock-native-btn" id="ghDockBtn" type="button"><img src="assets/rabit.webp" alt="" /></button>
     </div>
   </main>
+
+  <template id="issueCardTemplate">
+    <article class="issue-card">
+      <div class="issue-top">
+        <button class="type-icon" type="button" title="키 복사"></button>
+        <div class="issue-main">
+          <div class="issue-key"></div>
+          <div class="issue-title issue-title-link"></div>
+        </div>
+        <div class="pin"><button type="button" title="핀"></button></div>
+      </div>
+      <div class="meta-row">
+        <span class="badge issue-status"></span>
+        <span class="badge gray issue-priority"></span>
+        <span class="badge gray issue-date"></span>
+      </div>
+      <div class="branch-box">
+        <span>Branch</span><button class="mini-btn branch-edit-toggle" type="button" aria-label="브랜치 추가"><span class="svg-icon i-edit"></span></button>
+    
+      <div class="link-stack branch-stack"></div>
+      <div class="branch-edit-area">
+        <div class="branch-add-row">
+          <input class="branch-input" type="text" />
+          <button class="branch-save-btn row-btn" type="button" aria-label="저장"><span class="svg-icon i-check"></span></button>
+        </div>
+      </div>
+        </div>
+      <div class="memo-box memo-toggle">
+        <div class="memo-label"><span class="svg-icon i-doc"></span> Memo</div>
+        <div class="memo-edit-actions">
+          <button class="memo-link-toggle" type="button" aria-label="메모 편집"><span class="svg-icon i-edit"></span></button>
+        </div>
+        <div class="memo-text"></div>
+        <div class="memo-inline-edit">
+          <textarea class="memo-inline-textarea" aria-label="메모 수정"></textarea>
+        </div>
+        <div class="saved-links"></div>
+        <div class="saved-link-add-panel">
+          <div class="link-edit-head"><span class="link-edit-title">링크 관리</span></div>
+          <div class="link-manage-list"></div>
+          <div class="link-new-row">
+            <span class="link-icon-placeholder"></span>
+            <input class="link-input new-link-input" type="text" placeholder="https://..." />
+            <button class="link-manage-btn add-link-btn" type="button" aria-label="추가"><span class="svg-icon i-check"></span></button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <template id="branchRowTemplate">
+    <div class="linked-row branch-row">
+      <div class="branch-read">
+        <span class="linked-dot branch"></span>
+        <span><strong class="branch-name"></strong></span>
+        <span class="row-actions">
+          <button class="row-btn copy" type="button" aria-label="복사"></button>
+          <button class="row-btn edit" type="button" aria-label="수정"></button>
+          <button class="row-btn danger" type="button" aria-label="삭제"></button>
+        </span>
+      </div>
+      <div class="branch-edit-line" hidden>
+        <input class="branch-input branch-edit-input" type="text" />
+        <button class="row-btn save" type="button" aria-label="저장"></button>
+        <button class="row-btn cancel" type="button" aria-label="취소"></button>
+      </div>
+    </div>
+  </template>
+
+  <template id="savedLinkTemplate">
+    <span class="saved-link">
+      <span class="saved-link-icon"></span>
+      <span class="saved-link-text"></span>
+    </span>
+  </template>
+
+  <template id="linkIconSelectTemplate">
+    <div class="link-icon-select">
+      <button class="link-ico link-ico-current" type="button" data-icon-id="icoLink" aria-label="링크 아이콘 선택"></button>
+      <div class="link-picker"></div>
+    </div>
+  </template>
+
+  <template id="linkManageItemTemplate">
+    <div class="link-manage-item">
+      <div class="link-icon-select">
+        <button class="link-ico link-ico-current" type="button" data-icon-id="icoLink" aria-label="링크 아이콘 선택"></button>
+        <div class="link-picker"></div>
+      </div>
+      <div class="link-inputs">
+        <input class="link-input link-label-input" type="text" placeholder="링크 이름" />
+        <input class="link-input link-url-input" type="text" placeholder="URL" />
+      </div>
+      <div class="link-manage-actions">
+        <button class="link-manage-btn save" type="button" aria-label="저장"></button>
+        <button class="link-manage-btn danger" type="button" aria-label="삭제"></button>
+      </div>
+    </div>
+  </template>
+
+  <template id="prCardTemplate">
+    <article class="pr-card">
+      <button class="pr-copy-btn" type="button" aria-label="PR 링크 복사" title="PR 링크 복사"><span class="svg-icon i-link"></span></button>
+      <div class="pr-top">
+        <div class="type-icon pr">PR</div>
+        <div class="pr-main">
+          <div class="pr-repo"></div>
+          <button class="pr-title" type="button"></button>
+        </div>
+      </div>
+      <div class="meta-row">
+        <span class="badge pr-state"></span>
+        <span class="badge gray pr-number"></span>
+        <span class="badge gray pr-date"></span>
+      </div>
+      <div class="link-stack pr-link-stack"></div>
+    </article>
+  </template>
+
+  <template id="prJiraRowTemplate">
+    <button class="linked-row pr-jira-row" type="button" aria-label="연결된 Jira 열기">
+      <span class="linked-dot"></span>
+      <span class="pr-row-content">
+        <span class="pr-row-label">Jira</span>
+        <strong class="jira-key"></strong>
+        <span class="pr-row-desc">와 연결됨</span>
+      </span>
+      <span class="pr-row-cue" aria-hidden="true">↗</span>
+    </button>
+  </template>
+
+  <template id="prBranchRowTemplate">
+    <button class="linked-row pr-branch-row" type="button" aria-label="PR diff 열기">
+      <span class="linked-dot branch"></span>
+      <span class="pr-row-content">
+        <strong class="pr-head"></strong>
+        <span class="pr-row-desc">→ <span class="pr-base"></span></span>
+      </span>
+      <span class="pr-row-cue" aria-hidden="true">↗</span>
+    </button>
+  </template>
+
+<template id="repoItemTemplate">
+  <div class="repo-item">
+    <div class="repo-view">
+      <div>
+        <strong class="repo-name"></strong>
+        <div class="repo-meta"></div>
+      </div>
+      <div class="repo-actions">
+        <button class="mini-btn edit-repo" type="button" aria-label="수정"></button>
+        <button class="mini-btn danger delete-repo" type="button" aria-label="삭제"></button>
+      </div>
+    </div>
+
+    <div class="repo-edit">
+      <input class="field-input repo-edit-full" type="text" aria-label="레포지토리 수정" />
+      <input class="field-input repo-edit-branches" type="text" aria-label="base 브랜치 수정" />
+      <div class="repo-actions">
+        <button class="mini-btn save-repo" type="button" aria-label="저장">
+          <span class="svg-icon i-check"></span>
+        </button>
+        <button class="mini-btn cancel-repo" type="button" aria-label="취소">
+          <span class="svg-icon i-x"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
 
   <script src="./renderer.js"></script>
 </body>
