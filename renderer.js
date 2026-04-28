@@ -44,8 +44,8 @@ const LINK_ICON_OPTIONS = [
 
 const state = {
   panelOpen: false,
-  view: "jira",
-  previousView: "jira",
+  view: "home",
+  previousView: "home",
   jiraFilter: "todo",
   prFilter: "all",
   issues: [],
@@ -60,6 +60,8 @@ const state = {
   repoEditingIndex: null,
   dockCharacter: "quokka",
   userName: "goeun",
+  logwork: {},
+  logworkOffset: 0,
 };
 
 function esc(s = "") {
@@ -102,14 +104,16 @@ function setView(view) {
   );
   const name = state.userName || "goeun";
   const titles = {
+    home: `@${name} · Home`,
     jira: `@${name} · Jira`,
     pr: `@${name} · Pull Requests`,
     settings: `@${name} · Settings`,
   };
-  $("#dynamicTitle").textContent = titles[view] || titles.jira;
+  $("#dynamicTitle").textContent = titles[view] || titles.home;
   if (view === "settings") loadSettingsIntoForm();
   if (view === "jira") renderIssues();
   if (view === "pr") renderPRs();
+  if (view === "home") renderHome();
 }
 function setLoading(kind, msg) {
   const el = kind === "jira" ? $("#jiraState") : $("#prState");
@@ -287,8 +291,10 @@ function prSearchFields(pr) {
 }
 
 async function boot() {
+  loadLogwork();
   bindChrome();
   bindFilters();
+  bindHome();
   await loadLocalState();
   await loadSettings();
   await Promise.allSettled([
@@ -313,6 +319,7 @@ function bindChrome() {
     if (state.panelOpen && state.view === "pr" && !state.prs.length)
       await fetchPRs();
   });
+  
   updateDockVisibility();
   $("#closePanelBtn").addEventListener("click", () => setPanel(false));
   $("#refreshBtn").addEventListener("click", async () => {
@@ -422,6 +429,175 @@ function bindFilters() {
     }),
   );
 }
+/* ─── Logwork helpers ─── */
+function logworkKey(offset = 0) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function loadLogwork() {
+  state.logwork = JSON.parse(localStorage.getItem("logwork") || "{}");
+}
+function saveLogwork() {
+  localStorage.setItem("logwork", JSON.stringify(state.logwork));
+}
+function getLogworkData(offset = 0) {
+  return state.logwork[logworkKey(offset)] || { logged: 0, target: 20 };
+}
+function setLogworkData(offset, patch) {
+  const key = logworkKey(offset);
+  state.logwork[key] = { ...getLogworkData(offset), ...patch };
+  saveLogwork();
+}
+
+function bindHome() {
+  $("#logworkPrev").addEventListener("click", () => {
+    state.logworkOffset -= 1;
+    renderLogwork();
+  });
+  $("#logworkNext").addEventListener("click", () => {
+    if (state.logworkOffset >= 0) return;
+    state.logworkOffset += 1;
+    renderLogwork();
+  });
+
+  /* edit logged */
+  $("#logworkLoggedBtn").addEventListener("click", () => {
+    const { logged } = getLogworkData(state.logworkOffset);
+    $("#logworkLoggedInput").value = logged;
+    $("#logworkLoggedForm").hidden = false;
+    $("#logworkTargetForm").hidden = true;
+    $("#logworkLoggedInput").focus();
+    $("#logworkLoggedInput").select();
+  });
+  $("#logworkLoggedSave").addEventListener("click", () => {
+    const val = Number($("#logworkLoggedInput").value);
+    if (!isNaN(val) && val >= 0) setLogworkData(state.logworkOffset, { logged: val });
+    $("#logworkLoggedForm").hidden = true;
+    renderLogwork();
+  });
+  $("#logworkLoggedCancel").addEventListener("click", () => {
+    $("#logworkLoggedForm").hidden = true;
+  });
+  $("#logworkLoggedInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("#logworkLoggedSave").click();
+    if (e.key === "Escape") $("#logworkLoggedCancel").click();
+  });
+
+  /* edit target */
+  $("#logworkEditTargetBtn").addEventListener("click", () => {
+    const { target } = getLogworkData(state.logworkOffset);
+    $("#logworkTargetInput").value = target;
+    $("#logworkTargetForm").hidden = false;
+    $("#logworkLoggedForm").hidden = true;
+    $("#logworkTargetInput").focus();
+    $("#logworkTargetInput").select();
+  });
+  $("#logworkTargetSave").addEventListener("click", () => {
+    const val = Number($("#logworkTargetInput").value);
+    if (!isNaN(val) && val > 0) setLogworkData(state.logworkOffset, { target: val });
+    $("#logworkTargetForm").hidden = true;
+    renderLogwork();
+  });
+  $("#logworkTargetCancel").addEventListener("click", () => {
+    $("#logworkTargetForm").hidden = true;
+  });
+  $("#logworkTargetInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("#logworkTargetSave").click();
+    if (e.key === "Escape") $("#logworkTargetCancel").click();
+  });
+}
+
+/* ─── Home render ─── */
+function renderLogwork() {
+  const offset = state.logworkOffset;
+  const { logged, target } = getLogworkData(offset);
+
+  /* hide edit forms when switching months */
+  $("#logworkLoggedForm").hidden = true;
+  $("#logworkTargetForm").hidden = true;
+
+  const d = new Date();
+  d.setMonth(d.getMonth() + offset);
+  const months = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+  $("#logworkMonthLabel").textContent = `${d.getFullYear()}년 ${months[d.getMonth()]}`;
+
+  const pct = target > 0 ? Math.min(100, Math.round((logged / target) * 100)) : 0;
+  const remaining = Math.max(0, target - logged);
+
+  $("#logworkLoggedVal").textContent = logged;
+  $("#logworkTargetVal").textContent = target;
+
+  const fill = $("#logworkFill");
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle("is-done", pct >= 100);
+
+  $("#logworkPct").textContent = `${pct}%`;
+  $("#logworkRemain").textContent = remaining > 0 ? `${remaining}d 남음` : "목표 달성! 🎉";
+
+  $("#logworkNext").disabled = offset >= 0;
+}
+
+function renderHomeJira() {
+  const list = $("#homeJiraList");
+  const items = state.issues
+    .filter((issue) => issueCat(issue) !== "done")
+    .slice(0, 5);
+
+  list.innerHTML = "";
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-inline">${state.issues.length ? "진행 중인 이슈가 없어요 🎉" : "이슈가 없어요"}</div>`;
+    return;
+  }
+
+  items.forEach((issue) => {
+    const cat = issueCat(issue);
+    const dotColor = cat === "wip" ? "var(--blue)" : "var(--yellow)";
+    const el = document.createElement("div");
+    el.className = "home-mini-item";
+    el.innerHTML = `
+      <span class="home-mini-dot" style="background:${dotColor}"></span>
+      <span class="home-mini-key">${esc(issue.key)}</span>
+      <span class="home-mini-title">${esc(issue.summary || "")}</span>
+      <span class="home-mini-badge ${badgeClass(cat)}">${esc(issue.status || cat)}</span>
+    `;
+    el.addEventListener("click", () => window.api?.openUrl?.(issue.url));
+    list.appendChild(el);
+  });
+}
+
+function renderHomePR() {
+  const list = $("#homePRList");
+  const items = state.prs.filter((pr) => pr.stateGroup === "open").slice(0, 5);
+
+  list.innerHTML = "";
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-inline">${state.prs.length ? "오픈 PR이 없어요 🎉" : "PR이 없어요"}</div>`;
+    return;
+  }
+
+  items.forEach((pr) => {
+    const el = document.createElement("div");
+    el.className = "home-mini-item";
+    el.innerHTML = `
+      <span class="home-mini-dot" style="background:var(--green)"></span>
+      <span class="home-mini-key">#${esc(String(pr.number))}</span>
+      <span class="home-mini-title">${esc(pr.title || "")}</span>
+      <span class="home-mini-badge open">${esc(pr.stateLabel || "Open")}</span>
+    `;
+    el.addEventListener("click", () => pr.url && window.api?.openUrl?.(pr.url));
+    list.appendChild(el);
+  });
+}
+
+function renderHome() {
+  renderLogwork();
+  renderHomeJira();
+  renderHomePR();
+}
+
 function applyTheme(mode) {
   document.body.classList.toggle("dark-mode", mode === "dark");
   localStorage.setItem("theme", mode);
@@ -559,6 +735,7 @@ function renderAll() {
   updateCounts();
   renderIssues();
   renderPRs();
+  renderHome();
   renderRepoList();
 }
 function updateCounts() {
@@ -604,6 +781,7 @@ function createIssueCard(issue) {
   const type = typeInfo(issue.issueType);
   const query = $("#jiraSearch")?.value.trim() || "";
   const card = cloneTemplate("issueCardTemplate");
+  if (state.pins.has(key)) card.classList.add("is-pinned");
 
   const typeButton = $(".type-icon", card);
   typeButton.classList.add(type.cls);
@@ -630,6 +808,16 @@ function createIssueCard(issue) {
   renderBranches(card, issue);
   renderLinks(card, issue);
 
+  $(".pill-branch", card).addEventListener("click", (e) => {
+    e.stopPropagation();
+    card.classList.add("is-branch-editing");
+    $(".branch-add-row .branch-input", card).focus();
+  });
+  $(".pill-memo", card).addEventListener("click", (e) => {
+    e.stopPropagation();
+    $(".memo-link-toggle", card).click();
+  });
+
   $(".issue-title-link", card).addEventListener("click", () =>
     window.api?.openUrl?.(issue.url),
   );
@@ -642,16 +830,13 @@ function createIssueCard(issue) {
     await savePins();
     renderIssues();
   });
-  $(".branch-edit-toggle", card).addEventListener("click", (e) => {
+  $(".branch-add-btn", card).addEventListener("click", (e) => {
     e.stopPropagation();
-    const button = e.currentTarget;
     const isEditing = card.classList.contains("is-branch-editing");
     if (isEditing) {
       card.classList.remove("is-branch-editing");
-      button.innerHTML = ICONS.edit;
     } else {
       card.classList.add("is-branch-editing");
-      button.innerHTML = ICONS.check;
       $(".branch-add-row .branch-input", card).focus();
     }
   });
@@ -667,7 +852,6 @@ function createIssueCard(issue) {
     input.value = "";
     await saveBranches();
     card.classList.remove("is-branch-editing");
-    $(".branch-edit-toggle", card).innerHTML = ICONS.edit;
     renderBranches(card, issue);
     showSpeech(`${key} 브랜치를 저장했어요`);
   });
@@ -676,7 +860,6 @@ function createIssueCard(issue) {
     if (e.key === "Escape") {
       $(".branch-add-row .branch-input", card).value = "";
       card.classList.remove("is-branch-editing");
-      $(".branch-edit-toggle", card).innerHTML = ICONS.edit;
     }
   });
   bindMemoToggle(card, key);
@@ -728,6 +911,7 @@ function bindMemoToggle(card, key) {
           ? hl(state.memos[key], $("#jiraSearch")?.value.trim() || "")
           : "";
         card.classList.remove("is-memo-editing");
+        card.classList.toggle("has-memo", !!(state.memos[key] || (state.links[key] && state.links[key].length)));
         $(".saved-link-add-panel", card).classList.remove("is-open");
         $(".memo-edit-actions", card).innerHTML =
           `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
@@ -740,6 +924,7 @@ function bindMemoToggle(card, key) {
         const textarea = $(".memo-inline-textarea", card);
         textarea.value = state.memos[key] || "";
         card.classList.remove("is-memo-editing");
+        card.classList.toggle("has-memo", !!(state.memos[key] || (state.links[key] && state.links[key].length)));
         $(".saved-link-add-panel", card).classList.remove("is-open");
         $(".memo-edit-actions", card).innerHTML =
           `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
@@ -753,6 +938,7 @@ function renderBranches(card, issue) {
   const key = issue.key;
   const query = $("#jiraSearch")?.value.trim() || "";
   const arr = state.branches[key] || [];
+  card.classList.toggle("has-branch", arr.length > 0);
   stack.innerHTML = "";
   arr.forEach((branch, idx) => {
     const row = cloneTemplate("branchRowTemplate");
@@ -928,6 +1114,8 @@ function renderLinks(card, issue) {
     newRow.dataset.pickerBound = "true";
     bindIconPicker(selector);
   }
+  const hasMemo = !!(state.memos[key] || arr.length);
+  card.classList.toggle("has-memo", hasMemo);
 }
 function renderPRs() {
   updateCounts();
@@ -948,22 +1136,23 @@ function renderPRs() {
 function createPRCard(pr) {
   const query = $("#prSearch")?.value.trim() || "";
   const card = cloneTemplate("prCardTemplate");
-  const isOpen = pr.stateGroup === "open";
   const jiraKey =
     (pr.title + " " + pr.head).match(/[A-Z][A-Z0-9]+-\d+/)?.[0] || "";
   const prUrl = pr.url || "";
   const diffUrl = prUrl ? `${prUrl}/files` : "";
 
-  card.classList.add(isOpen ? "tone-open" : "tone-done");
+  const toneClass = pr.stateGroup === "open" ? "tone-open" : pr.stateGroup === "merged" ? "tone-merged" : "tone-closed";
+  card.classList.add(toneClass);
 
   const actionBtn = $(".pr-action-btn", card);
-  actionBtn.textContent = isOpen ? "↗" : "✓";
+  actionBtn.innerHTML = pr.stateGroup === "open" ? "↗" : pr.stateGroup === "merged" ? "✓" : `<span class="svg-icon i-x"></span>`;
 
   $(".pr-repo", card).innerHTML =
     `${hl(pr.owner, query)} / ${hl(pr.repo, query)}`;
 
   const status = $(".pr-state", card);
-  status.classList.add(isOpen ? "done" : "doing");
+  const badgeCls = pr.stateGroup === "open" ? "done" : pr.stateGroup === "merged" ? "doing" : "closed";
+  status.classList.add(badgeCls);
   status.textContent = pr.stateLabel || "";
 
   $(".pr-date-label", card).textContent = fmtDate(pr.updatedAt);

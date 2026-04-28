@@ -88,7 +88,7 @@ async function fetchMyPRs(baseUrl, token, repos = []) {
                 closedAt: pr.closed_at,
                 mergedAt: pr.merged_at,
                 stateLabel,
-                stateGroup: pr.state === "open" ? "open" : "done",
+                stateGroup: pr.state === "open" ? "open" : pr.merged_at ? "merged" : "closed",
               };
             });
         } catch (error) {
