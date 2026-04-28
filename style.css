@@ -1815,42 +1815,109 @@ mark {
 }
 
 /* ══════════════════════════════════════════
-   PR CARD - real card structure polish
+   PR CARD - redesigned
 ══════════════════════════════════════════ */
 .pr-card {
   cursor: default;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
-.pr-card .pr-top {
-  padding-right: 34px;
+.pr-card:hover {
+  transform: translateY(-2px);
 }
 
-.pr-card .type-icon.pr {
+/* OPEN 카드: 초록 톤 */
+.pr-card.tone-open {
+  border-color: rgba(89, 184, 107, 0.35);
+  background: rgba(89, 184, 107, 0.06);
+}
+body.dark-mode .pr-card.tone-open {
+  border-color: rgba(132, 214, 148, 0.28);
+  background: rgba(132, 214, 148, 0.07);
+}
+
+/* 카드 내부 행 (action-btn + main) */
+.pr-card-row {
+  display: flex;
+  align-items: flex-start;
+  padding-right: 36px;
+  gap: 8px;
+}
+
+/* 좌측 액션 버튼 */
+.pr-action-btn {
+  display: grid;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 0.8rem;
+  font-weight: 800;
+  place-items: center;
+}
+.pr-action-btn:hover {
+  transform: scale(1.07) translateY(-1px);
+}
+.tone-open .pr-action-btn {
   background: var(--green-soft);
   color: var(--green);
 }
 
+/* 정보 행: repo · badge · date */
+.pr-info-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.pr-info-row .pr-repo {
+  font-size: var(--fs-11);
+  font-weight: 600;
+  color: var(--sub);
+}
+.pr-info-row .badge {
+  padding: 2px 7px;
+  font-size: 0.625rem;
+}
+.pr-date-label {
+  font-size: var(--fs-11);
+  font-weight: 500;
+  color: var(--weak);
+}
+
+/* 타이틀 */
 .pr-title {
   display: block;
   width: 100%;
-  margin-top: 3px;
+  margin-top: 4px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--text);
-  font-size: var(--fs-14);
-  font-weight: 500;
+  font-size: var(--fs-13);
+  font-weight: 600;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
 .pr-title:hover {
   color: var(--blue);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+.pr-number-label {
+  color: var(--sub);
+}
 
+/* 복사 버튼 (호버시 노출) */
 .pr-copy-btn {
   display: grid;
   opacity: 0;
@@ -1867,65 +1934,51 @@ mark {
   place-items: center;
   pointer-events: none;
 }
-
 .pr-copy-btn .svg-icon {
   width: 13px;
   height: 13px;
 }
-
 .pr-card:hover .pr-copy-btn,
 .pr-card:focus-within .pr-copy-btn {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
 }
-
 .pr-copy-btn:hover {
   color: var(--text);
   transform: translateY(-1px);
   border-color: var(--line-strong);
 }
 
+/* 링크 스택 */
 .pr-link-stack {
-  margin-top: 10px;
+  margin-top: 9px;
 }
 
-.pr-jira-row,
-.pr-branch-row {
+/* Jira 연결 행 */
+.pr-jira-row {
   width: 100%;
+  align-items: flex-start;
+  min-height: 52px;
   text-align: left;
   cursor: pointer;
 }
-
-.pr-jira-row {
-  align-items: flex-start;
-  min-height: 52px;
-}
-
-.pr-branch-row {
-  min-height: 46px;
-}
-
 .pr-row-content {
   display: grid;
   min-width: 0;
   gap: 2px;
 }
-
 .pr-row-label {
   font-size: var(--fs-11);
   font-weight: 500;
   color: var(--sub);
 }
-
 .pr-row-desc {
   color: var(--sub);
   font-size: var(--fs-12);
   font-weight: 500;
 }
-
-.pr-jira-row strong,
-.pr-branch-row strong {
+.pr-jira-row strong {
   display: block;
   max-width: 230px;
   color: var(--text);
@@ -1934,9 +1987,9 @@ mark {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .pr-row-cue {
   margin-left: auto;
+  flex-shrink: 0;
   color: var(--weak);
   font-weight: 800;
   opacity: 0;
@@ -1946,20 +1999,77 @@ mark {
     transform var(--dur-fast) var(--ease-out),
     color var(--dur-base) var(--ease-out);
 }
-
-.pr-jira-row:hover,
-.pr-branch-row:hover {
+.pr-jira-row:hover {
   background: var(--field);
   border-color: var(--line-strong);
 }
-
 .pr-jira-row:hover .pr-row-cue,
-.pr-branch-row:hover .pr-row-cue,
-.pr-jira-row:focus-visible .pr-row-cue,
-.pr-branch-row:focus-visible .pr-row-cue {
+.pr-jira-row:focus-visible .pr-row-cue {
   opacity: 1;
   color: var(--text);
   transform: translateX(0);
+}
+
+/* 브랜치 footer 행 */
+.pr-branch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: var(--fs-11);
+  font-weight: 600;
+  color: var(--sub);
+  text-align: left;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease-out);
+}
+body.dark-mode .pr-branch-row {
+  background: rgba(255, 244, 230, 0.06);
+}
+.pr-branch-row:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+body.dark-mode .pr-branch-row:hover {
+  background: rgba(255, 244, 230, 0.13);
+}
+.pr-branch-text {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  gap: 4px;
+}
+.pr-branch-text .pr-head,
+.pr-branch-text .pr-base {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pr-branch-text .pr-head {
+  max-width: 55%;
+}
+.pr-branch-text .pr-arrow {
+  flex-shrink: 0;
+  color: var(--weak);
+}
+.pr-branch-row .pr-row-cue {
+  opacity: 0.5;
+  transform: none;
+}
+.pr-branch-row:hover .pr-row-cue {
+  opacity: 1;
+  color: var(--text);
+  transform: none;
 }
 
 .pr-jira-row:focus-visible,
