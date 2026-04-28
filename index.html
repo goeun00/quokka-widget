@@ -38,11 +38,68 @@
         </header>
 
         <nav class="top-tabs" id="topTabs" aria-label="상위 메뉴">
-          <button class="top-tab is-on" type="button" data-view="jira"><span>Jira Issue</span><span class="tab-count" id="tabJiraCount">0</span></button>
+          <button class="top-tab home-tab is-on" type="button" data-view="home" aria-label="홈"><span class="svg-icon i-home"></span></button>
+          <button class="top-tab" type="button" data-view="jira"><span>Jira Issue</span><span class="tab-count" id="tabJiraCount">0</span></button>
           <button class="top-tab" type="button" data-view="pr"><span>PR</span><span class="tab-count" id="tabPrCount">0</span></button>
         </nav>
 
-        <section class="view is-active" data-panel="jira">
+        <section class="view" data-panel="home">
+          <div class="home-body">
+            <div class="logwork-card">
+              <div class="logwork-nav">
+                <button class="logwork-nav-btn" id="logworkPrev">‹</button>
+                <span class="logwork-month-label" id="logworkMonthLabel"></span>
+                <button class="logwork-nav-btn" id="logworkNext">›</button>
+              </div>
+              <div class="logwork-row">
+                <div class="logwork-numbers">
+                  <button class="logwork-logged-num" id="logworkLoggedBtn" title="클릭해서 수정">
+                    <span id="logworkLoggedVal">0</span>
+                  </button>
+                  <span class="logwork-sep">/ <span id="logworkTargetVal">20</span>d</span>
+                </div>
+                <button class="logwork-edit-btn" id="logworkEditTargetBtn">목표 수정</button>
+              </div>
+              <div class="logwork-edit-form" id="logworkLoggedForm" hidden>
+                <span class="logwork-edit-label">기록</span>
+                <input class="logwork-edit-input" id="logworkLoggedInput" type="number" min="0" />
+                <span class="logwork-edit-unit">d</span>
+                <button class="logwork-save-btn" id="logworkLoggedSave">✓</button>
+                <button class="logwork-cancel-btn" id="logworkLoggedCancel">✕</button>
+              </div>
+              <div class="logwork-edit-form" id="logworkTargetForm" hidden>
+                <span class="logwork-edit-label">목표</span>
+                <input class="logwork-edit-input" id="logworkTargetInput" type="number" min="1" />
+                <span class="logwork-edit-unit">d</span>
+                <button class="logwork-save-btn" id="logworkTargetSave">✓</button>
+                <button class="logwork-cancel-btn" id="logworkTargetCancel">✕</button>
+              </div>
+              <div class="logwork-track">
+                <div class="logwork-fill" id="logworkFill"></div>
+              </div>
+              <div class="logwork-footer">
+                <span id="logworkPct"></span>
+                <span id="logworkRemain"></span>
+              </div>
+            </div>
+
+            <div class="home-section">
+              <div class="home-section-head">
+                <span class="home-section-label">Recent Issues</span>
+              </div>
+              <div class="home-mini-list" id="homeJiraList"></div>
+            </div>
+
+            <div class="home-section">
+              <div class="home-section-head">
+                <span class="home-section-label">Recent PRs</span>
+              </div>
+              <div class="home-mini-list" id="homePRList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-panel="jira">
           <section class="summary-grid" aria-label="Jira 작업 현황">
             <button class="summary-card is-on" type="button" data-jira-filter="todo"><span class="summary-label">TODO</span><span class="summary-num" id="nTodo">0</span></button>
             <button class="summary-card" type="button" data-jira-filter="wip"><span class="summary-label">DOING</span><span class="summary-num" id="nWip">0</span></button>
@@ -138,16 +195,18 @@
         <span class="badge gray issue-date"></span>
       </div>
       <div class="branch-box">
-        <span>Branch</span><button class="mini-btn branch-edit-toggle" type="button" aria-label="브랜치 추가"><span class="svg-icon i-edit"></span></button>
-    
-      <div class="link-stack branch-stack"></div>
-      <div class="branch-edit-area">
-        <div class="branch-add-row">
-          <input class="branch-input" type="text" />
-          <button class="branch-save-btn row-btn" type="button" aria-label="저장"><span class="svg-icon i-check"></span></button>
+        <div class="branch-header-row">
+          <span class="branch-label">Branch</span>
+          <button class="branch-add-btn" type="button" aria-label="브랜치 추가" title="브랜치 추가">+</button>
+        </div>
+        <div class="link-stack branch-stack"></div>
+        <div class="branch-edit-area">
+          <div class="branch-add-row">
+            <input class="branch-input" type="text" placeholder="feature/branch-name" />
+            <button class="branch-save-btn row-btn" type="button" aria-label="저장"><span class="svg-icon i-check"></span></button>
+          </div>
         </div>
       </div>
-        </div>
       <div class="memo-box memo-toggle">
         <div class="memo-label"><span class="svg-icon i-doc"></span> Memo</div>
         <div class="memo-edit-actions">
@@ -167,6 +226,10 @@
             <button class="link-manage-btn add-link-btn" type="button" aria-label="추가"><span class="svg-icon i-check"></span></button>
           </div>
         </div>
+      </div>
+      <div class="card-pills">
+        <button class="pill-btn pill-branch" type="button">+ Branch</button>
+        <button class="pill-btn pill-memo" type="button">+ Memo</button>
       </div>
     </article>
   </template>
