@@ -67,6 +67,8 @@ function mapIssue(baseUrl, issue) {
     statusCategory: issue.fields.status.statusCategory?.key || "new",
     issueType: issue.fields.issuetype?.name || "Task",
     updated: issue.fields?.updated || "",
+    reporter: issue.fields?.reporter?.displayName || "",
+    assignee: issue.fields?.assignee?.displayName || "",
     url: `${jiraBase}/browse/${issue.key}`,
   };
 }
@@ -96,7 +98,7 @@ async function fetchMyIssues(baseUrl, pat, doneDays = 60, email = "") {
   } catch {}
 
   const jql = `(assignee=currentUser() OR watcher=currentUser()) AND (statusCategory!=Done OR (statusCategory=Done AND updated>=-${doneDays}d)) ORDER BY updated DESC`;
-  const fields = "summary,status,updated,issuetype";
+  const fields = "summary,status,updated,issuetype,reporter,assignee";
   const url = getSearchUrl(jiraBase, jql, fields, 100);
   const res = await fetch(url, { headers });
 
@@ -188,7 +190,6 @@ async function fetchMyWorklogs(baseUrl, pat, monthOffset = 0, email = "") {
     loggedDays: totalSeconds / 3600 / 8,
     logs,
   };
-  console.log(logs);
 }
 
 async function fetchIssuesByKeys(baseUrl, pat, keys, email = "") {
@@ -199,7 +200,7 @@ async function fetchIssuesByKeys(baseUrl, pat, keys, email = "") {
     return { issues: [] };
   }
   const jql = `key in (${keys.join(",")}) ORDER BY updated DESC`;
-  const fields = "summary,status,updated,issuetype";
+  const fields = "summary,status,updated,issuetype,reporter,assignee";
   const url = getSearchUrl(jiraBase, jql, fields, 50);
   const res = await fetch(url, { headers });
 

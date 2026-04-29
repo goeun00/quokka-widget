@@ -24,4 +24,5 @@ window.api = {
   saveGHSettings: (data) => ipcRenderer.invoke("gh:saveSettings", data),
   fetchGHPRs: (baseUrl, token, repos) =>
     ipcRenderer.invoke("gh:fetchPRs", baseUrl, token, repos),
+  exportWorkReport: (rows) => ipcRenderer.invoke("export-work-report", rows),
 };

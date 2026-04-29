@@ -565,6 +565,16 @@ function bindHome() {
     if (e.key === "Enter") $("#logworkTargetSave").click();
     if (e.key === "Escape") $("#logworkTargetCancel").click();
   });
+
+  $("#exportReportBtn")?.addEventListener("click", async () => {
+    const rows = buildWorkReportRows();
+    if (!rows.length) {
+      showSpeech("엑셀로 내보낼 로그워크가 없어요 🥲");
+      return;
+    }
+    const result = await window.api?.exportWorkReport?.(rows);
+    if (!result?.canceled) showSpeech("업무보고 엑셀 저장 완료! 📊");
+  });
 }
 
 function renderLogworkList(logs = []) {
@@ -709,6 +719,64 @@ function renderHomePR() {
     list.appendChild(item);
   });
 }
+function formatReportDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yy} ${mm} ${dd}`;
+}
+
+function parseTimeSpentToSeconds(text = "") {
+  const value = String(text);
+  let seconds = 0;
+  const day = value.match(/(\d+(?:\.\d+)?)d/);
+  const hour = value.match(/(\d+(?:\.\d+)?)h/);
+  const minute = value.match(/(\d+(?:\.\d+)?)m/);
+  if (day) seconds += Number(day[1]) * 8 * 60 * 60;
+  if (hour) seconds += Number(hour[1]) * 60 * 60;
+  if (minute) seconds += Number(minute[1]) * 60;
+  return seconds;
+}
+
+function buildWorkReportRows() {
+  const { logs = [] } = getLogworkData(state.logworkOffset);
+  const issueMap = new Map(state.issues.map((issue) => [issue.key, issue]));
+  const group = new Map();
+
+  logs.forEach((log) => {
+    const key = log.issueKey;
+    if (!key) return;
+    if (!group.has(key)) group.set(key, { issueKey: key, logs: [], seconds: 0 });
+    const item = group.get(key);
+    item.logs.push(log);
+    item.seconds += log.timeSpentSeconds || parseTimeSpentToSeconds(log.timeSpent);
+  });
+
+  return [...group.values()].map(({ issueKey, logs, seconds }) => {
+    const issue = issueMap.get(issueKey) || {};
+    const sorted = logs.slice().sort((a, b) => new Date(a.started) - new Date(b.started));
+    return {
+      "JIRA 번호": issueKey,
+      "업무내용": issue.summary || sorted[0]?.summary || "",
+      "업무분류": "",
+      "Type": issue.issueType || "",
+      "요청구분": "JIRA",
+      "요청자": issue.reporter || "",
+      "담당자": issue.assignee || "",
+      "업무 시작일": formatReportDate(sorted[0]?.started),
+      "업무 종료일": formatReportDate(sorted[sorted.length - 1]?.started),
+      "Mark up Delivery": formatReportDate(sorted[sorted.length - 1]?.started),
+      "소요시간(D)": Number((seconds / 28800).toFixed(2)),
+      "Phase": issue.status || "",
+      "LTS": "",
+      "비고": issue.url || `${state.jira.baseUrl}/browse/${issueKey}`,
+    };
+  });
+}
+
 function renderHome() {
   renderLogwork();
   renderHomeJira();
@@ -924,7 +992,8 @@ function createIssueCard(issue) {
   const type = typeInfo(issue.issueType);
   const query = $("#jiraSearch")?.value.trim() || "";
   const card = cloneTemplate("issueCardTemplate");
-  if (state.pins.has(key)) card.classList.add("is-pinned");
+  const isPinned = state.pins.has(key);
+  if (isPinned) card.classList.add("is-pinned");
 
   const typeButton = $(".type-icon", card);
   typeButton.classList.add(type.cls);
@@ -932,9 +1001,9 @@ function createIssueCard(issue) {
 
   $(".issue-key", card).innerHTML = hl(key, query);
   $(".issue-title", card).innerHTML = hl(issue.summary, query);
-  $(".pin button", card).innerHTML = state.pins.has(key)
-    ? ICONS.pin
-    : ICONS.pin.replace("fill", "");
+  const pinBtn = $(".pin button", card);
+  pinBtn.innerHTML = isPinned ? ICONS.pin : ICONS.pin.replace("fill", "");
+  if (isPinned) pinBtn.classList.add("is-pinned");
 
   const status = $(".issue-status", card);
   status.classList.add(badgeClass(cat));
