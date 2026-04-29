@@ -1,358 +1,769 @@
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <title>Quokka Work Dock</title>
-  <link rel="stylesheet" href="./style.css" />
-</head>
-<body>
-  <div class="ctx-menu" id="ctxMenu">
-    <div class="ctx-item" id="ctxTheme">🌙 다크 모드</div>
-    <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
-  </div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quokka Work Dock</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="ctx-menu" id="ctxMenu">
+      <div class="ctx-item" id="ctxTheme">🌙 다크 모드</div>
+      <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
+    </div>
 
-  <div class="confirm-overlay" id="confirmOverlay">
-    <div class="confirm-box">
-      <div class="confirm-msg" id="confirmMsg">삭제하시겠어요?</div>
-      <div class="confirm-btns">
-        <button class="confirm-btn cancel" id="confirmCancel" type="button">취소</button>
-        <button class="confirm-btn ok" id="confirmOk" type="button">삭제</button>
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-box">
+        <div class="confirm-msg" id="confirmMsg">삭제하시겠어요?</div>
+        <div class="confirm-btns">
+          <button class="confirm-btn cancel" id="confirmCancel" type="button">
+            취소
+          </button>
+          <button class="confirm-btn ok" id="confirmOk" type="button">
+            삭제
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <main class="app-shell">
-    <section class="dock-frame" id="dockFrame">
-      <section class="dock-panel">
-        <header class="dock-header">
-          <div class="avatar" id="avatarBtn" aria-label="profile"><span class="svg-icon i-quokka-face"></span></div>
-          <div class="title-area">
-            <div class="eyebrow">Jira + Git</div>
-            <div class="title" id="dynamicTitle">@goeun · Jira</div>
-          </div>
-          <div class="actions">
-            <button class="icon-btn" type="button" id="refreshBtn" aria-label="refresh"><span class="svg-icon i-refresh"></span></button>
-            <button class="icon-btn" type="button" id="settingsBtn" aria-label="settings"><span class="svg-icon i-settings"></span></button>
-            <button class="icon-btn" type="button" id="closePanelBtn" aria-label="close"><span class="svg-icon i-x"></span></button>
-          </div>
-        </header>
-
-        <nav class="top-tabs" id="topTabs" aria-label="상위 메뉴">
-          <button class="top-tab home-tab is-on" type="button" data-view="home" aria-label="홈"><span class="svg-icon i-home"></span></button>
-          <button class="top-tab" type="button" data-view="jira"><span>Jira Issue</span><span class="tab-count" id="tabJiraCount">0</span></button>
-          <button class="top-tab" type="button" data-view="pr"><span>PR</span><span class="tab-count" id="tabPrCount">0</span></button>
-        </nav>
-
-        <section class="view" data-panel="home">
-          <div class="home-body">
-            <div class="logwork-card">
-              <div class="logwork-nav">
-                <button class="logwork-nav-btn" id="logworkPrev">‹</button>
-                <span class="logwork-month-label" id="logworkMonthLabel"></span>
-                <button class="logwork-nav-btn" id="logworkNext">›</button>
-              </div>
-              <div class="logwork-row">
-                <div class="logwork-numbers">
-                  <button class="logwork-logged-num" id="logworkLoggedBtn" title="클릭해서 수정">
-                    <span id="logworkLoggedVal">0</span>
-                  </button>
-                  <span class="logwork-sep">/ <span id="logworkTargetVal">20</span>d</span>
-                </div>
-                <button class="logwork-edit-btn" id="logworkEditTargetBtn">목표 수정</button>
-              </div>
-              <div class="logwork-edit-form" id="logworkLoggedForm" hidden>
-                <span class="logwork-edit-label">기록</span>
-                <input class="logwork-edit-input" id="logworkLoggedInput" type="number" min="0" />
-                <span class="logwork-edit-unit">d</span>
-                <button class="logwork-save-btn" id="logworkLoggedSave">✓</button>
-                <button class="logwork-cancel-btn" id="logworkLoggedCancel">✕</button>
-              </div>
-              <div class="logwork-edit-form" id="logworkTargetForm" hidden>
-                <span class="logwork-edit-label">목표</span>
-                <input class="logwork-edit-input" id="logworkTargetInput" type="number" min="1" />
-                <span class="logwork-edit-unit">d</span>
-                <button class="logwork-save-btn" id="logworkTargetSave">✓</button>
-                <button class="logwork-cancel-btn" id="logworkTargetCancel">✕</button>
-              </div>
-              <div class="logwork-track">
-                <div class="logwork-fill" id="logworkFill"></div>
-              </div>
-              <div class="logwork-footer">
-                <span id="logworkPct"></span>
-                <span id="logworkRemain"></span>
-              </div>
+    <main class="app-shell">
+      <section class="dock-frame" id="dockFrame">
+        <section class="dock-panel">
+          <header class="dock-header">
+            <div class="avatar" id="avatarBtn" aria-label="profile">
+              <span class="svg-icon i-quokka-face"></span>
             </div>
-
-            <div class="home-section">
-              <div class="home-section-head">
-                <span class="home-section-label">Recent Issues</span>
-              </div>
-              <div class="home-mini-list" id="homeJiraList"></div>
+            <div class="title-area">
+              <div class="eyebrow">Jira + Git</div>
+              <div class="title" id="dynamicTitle">@goeun · Jira</div>
             </div>
-
-            <div class="home-section">
-              <div class="home-section-head">
-                <span class="home-section-label">Recent PRs</span>
-              </div>
-              <div class="home-mini-list" id="homePRList"></div>
+            <div class="actions">
+              <button
+                class="icon-btn"
+                type="button"
+                id="refreshBtn"
+                aria-label="refresh"
+              >
+                <span class="svg-icon i-refresh"></span>
+              </button>
+              <button
+                class="icon-btn"
+                type="button"
+                id="settingsBtn"
+                aria-label="settings"
+              >
+                <span class="svg-icon i-settings"></span>
+              </button>
+              <button
+                class="icon-btn"
+                type="button"
+                id="closePanelBtn"
+                aria-label="close"
+              >
+                <span class="svg-icon i-x"></span>
+              </button>
             </div>
-          </div>
-        </section>
+          </header>
 
-        <section class="view" data-panel="jira">
-          <section class="summary-grid" aria-label="Jira 작업 현황">
-            <button class="summary-card is-on" type="button" data-jira-filter="todo"><span class="summary-label">TODO</span><span class="summary-num" id="nTodo">0</span></button>
-            <button class="summary-card" type="button" data-jira-filter="wip"><span class="summary-label">DOING</span><span class="summary-num" id="nWip">0</span></button>
-            <button class="summary-card" type="button" data-jira-filter="done"><span class="summary-label">DONE</span><span class="summary-num" id="nDone">0</span></button>
-            <button class="summary-card" type="button" data-jira-filter="pin"><span class="summary-label">PIN</span><span class="summary-num" id="nPin">0</span></button>
-          </section>
-          <label class="search"><span class="svg-icon i-search"></span><input class="search-input-native" id="jiraSearch" type="text" placeholder="이슈 / 브랜치 / 메모 검색..." /></label>
-          <div class="state" id="jiraState" hidden></div>
-          <section class="issue-list" id="issueList"></section>
-        </section>
+          <nav class="top-tabs" id="topTabs" aria-label="상위 메뉴">
+            <button
+              class="top-tab home-tab is-on"
+              type="button"
+              data-view="home"
+              aria-label="홈"
+            >
+              <span class="svg-icon i-home"></span>
+            </button>
+            <button class="top-tab" type="button" data-view="jira">
+              <span>Jira Issue</span
+              ><span class="tab-count" id="tabJiraCount">0</span>
+            </button>
+            <button class="top-tab" type="button" data-view="pr">
+              <span>PR</span><span class="tab-count" id="tabPrCount">0</span>
+            </button>
+          </nav>
 
-        <section class="view" data-panel="pr">
-          <section class="summary-grid pr-summary" aria-label="PR 현황">
-            <button class="summary-card is-on" type="button" data-pr-filter="all"><span class="summary-label">ALL</span><span class="summary-num" id="nPrAll">0</span></button>
-            <button class="summary-card" type="button" data-pr-filter="open"><span class="summary-label">OPEN</span><span class="summary-num" id="nPrOpen">0</span></button>
-            <button class="summary-card" type="button" data-pr-filter="done"><span class="summary-label">DONE</span><span class="summary-num" id="nPrDone">0</span></button>
-          </section>
-          <label class="search"><span class="svg-icon i-search"></span><input class="search-input-native" id="prSearch" type="text" placeholder="PR 제목 / 브랜치 / 레포 검색..." /></label>
-          <div class="state" id="prState" hidden></div>
-          <section class="pr-list" id="prList"></section>
-        </section>
-
-        <section class="view" data-panel="settings">
-          <div class="settings-body">
-            <article class="setting-card">
-              <div class="setting-title">Settings</div>
-              <div class="setting-desc">실제 Jira / GitHub 설정과 저장소 데이터를 그대로 연결해요.</div>
-              <section class="setting-section">
-                <div class="setting-section-head"><div><div class="setting-section-kicker">Appearance</div><div class="setting-title" style="font-size:14px">Personalization</div></div></div>
-                <div class="form-row"><label for="userName">사용자 이름</label><input id="userName" class="field-input" type="text" placeholder="goeun" /></div>
-                <div class="form-row"><label for="dockCharacter">Dock 캐릭터 선택</label><select id="dockCharacter" class="field-input"><option value="quokka">쿼카 🐨</option><option value="rabbit">토끼 🐰</option></select></div>
-              </section>
-              <section class="setting-section">
-                <div class="setting-section-head"><div><div class="setting-section-kicker">Jira</div><div class="setting-title" style="font-size:14px">Issue Sync</div></div><span class="repo-tag base">required</span></div>
-                <div class="form-row"><label for="jiraUrl">Jira URL</label><input id="jiraUrl" class="field-input" type="text" placeholder="https://yourcompany.atlassian.net" /></div>
-                <div class="form-row"><label for="jiraToken">Jira Personal Access Token</label><input id="jiraToken" class="field-input" type="password" placeholder="PAT 입력" /></div>
-                <div class="form-row">
-                  <label class="setting-check" for="usePersonalJira">
-                    <input id="usePersonalJira" type="checkbox" />
-                    <span>개인 Jira 사용</span>
-                  </label>
+          <section class="view is-active" data-panel="home">
+            <div class="home-body">
+              <div class="logwork-card">
+                <div class="state" id="logworkState" hidden></div>
+                <div class="logwork-nav">
+                  <button class="logwork-nav-btn" id="logworkPrev">‹</button>
+                  <span
+                    class="logwork-month-label"
+                    id="logworkMonthLabel"
+                  ></span>
+                  <button class="logwork-nav-btn" id="logworkNext">›</button>
                 </div>
-                <div class="form-row" id="jiraEmailWrap" hidden>
-                  <label for="jiraEmail">Jira Email</label>
-                  <input id="jiraEmail" class="field-input" type="email" placeholder="Atlassian 로그인 이메일" autocomplete="email" />
-                </div>
-                <div class="form-row"><label for="doneDays">Done 이슈 보관 기간</label><select id="doneDays" class="field-input"><option value="30">30일</option><option value="60">60일</option><option value="90">90일</option></select></div>
-              </section>
-              <section class="setting-section">
-                <div class="setting-section-head"><div><div class="setting-section-kicker">GitHub</div><div class="setting-title" style="font-size:14px">PR Sync</div></div><span class="repo-tag base">auto PR</span></div>
-                <div class="form-row"><label for="githubUrl">GitHub URL</label><input id="githubUrl" class="field-input" type="text" placeholder="https://github.company.com" /></div>
-                <div class="form-row"><label for="githubToken">GitHub Token</label><input id="githubToken" class="field-input" type="password" placeholder="PAT 입력" /></div>
-                <div class="repo-box">
-                  <div class="setting-title" style="font-size:13px">Repositories</div>
-                  <div class="setting-desc">레포와 base 브랜치를 한 줄로 추가해요. Base는 여러 개면 쉼표로 입력해요.</div>
-                  <div class="repo-row">
-                    <input class="field-input" id="repoFullName" type="text" placeholder="org-publisher/starro" aria-label="레포지토리 입력" />
-                    <input class="field-input" id="repoBranches" type="text" placeholder="dev,main,stg" aria-label="base 브랜치 입력" />
-                    <button class="mini-btn" id="addRepoBtn" type="button" aria-label="추가"><span class="svg-icon i-plus"></span></button>
+                <div class="logwork-row">
+                  <div class="logwork-numbers">
+                    <span class="logwork-logged-num">
+                      <span id="logworkLoggedVal">0</span>
+                    </span>
+                    <button
+                      type="button"
+                      class="logwork-sep"
+                      id="logworkEditTargetBtn"
+                    >
+                      / <span id="logworkTargetVal">20</span>d
+                    </button>
                   </div>
-                  <div class="repo-list" id="repoList"></div>
                 </div>
-              </section>
-              <button class="save-btn" id="saveSettingsBtn" type="button">저장하고 메인으로</button>
-            </article>
-          </div>
+                <div class="logwork-edit-form" id="logworkLoggedForm" hidden>
+                  <span class="logwork-edit-label">기록</span>
+                  <input
+                    class="logwork-edit-input"
+                    id="logworkLoggedInput"
+                    type="number"
+                    min="0"
+                  />
+                  <span class="logwork-edit-unit">d</span>
+                  <button class="logwork-save-btn" id="logworkLoggedSave">
+                    ✓
+                  </button>
+                  <button class="logwork-cancel-btn" id="logworkLoggedCancel">
+                    ✕
+                  </button>
+                </div>
+                <div class="logwork-edit-form" id="logworkTargetForm" hidden>
+                  <span class="logwork-edit-label">목표</span>
+                  <input
+                    class="logwork-edit-input"
+                    id="logworkTargetInput"
+                    type="number"
+                    min="1"
+                  />
+                  <span class="logwork-edit-unit">d</span>
+                  <button class="logwork-save-btn" id="logworkTargetSave">
+                    ✓
+                  </button>
+                  <button class="logwork-cancel-btn" id="logworkTargetCancel">
+                    ✕
+                  </button>
+                </div>
+                <div class="logwork-track">
+                  <div class="logwork-fill" id="logworkFill"></div>
+                </div>
+                <div class="logwork-footer">
+                  <span id="logworkPct"></span>
+                  <span id="logworkRemain"></span>
+                </div>
+              </div>
+              <div class="box_card">
+                <div class="section-head">
+                  <span class="home-section-label">Logged Issues</span>
+                </div>
+                <div class="home-mini-list" id="logworkList"></div>
+              </div>
+
+              <div class="box_card">
+                <div class="section-head">
+                  <span class="home-section-label">Recent Issues</span>
+                </div>
+                <div class="home-mini-list" id="homeJiraList"></div>
+              </div>
+
+              <div class="box_card">
+                <div class="section-head">
+                  <span class="home-section-label">Recent PRs</span>
+                </div>
+                <div class="home-mini-list" id="homePRList"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="view" data-panel="jira">
+            <section class="summary-grid" aria-label="Jira 작업 현황">
+              <button
+                class="summary-card is-on"
+                type="button"
+                data-jira-filter="todo"
+              >
+                <span class="summary-label">TODO</span
+                ><span class="summary-num" id="nTodo">0</span>
+              </button>
+              <button class="summary-card" type="button" data-jira-filter="wip">
+                <span class="summary-label">DOING</span
+                ><span class="summary-num" id="nWip">0</span>
+              </button>
+              <button
+                class="summary-card"
+                type="button"
+                data-jira-filter="done"
+              >
+                <span class="summary-label">DONE</span
+                ><span class="summary-num" id="nDone">0</span>
+              </button>
+              <button class="summary-card" type="button" data-jira-filter="pin">
+                <span class="summary-label">PIN</span
+                ><span class="summary-num" id="nPin">0</span>
+              </button>
+            </section>
+            <label class="search"
+              ><span class="svg-icon i-search"></span
+              ><input
+                class="search-input-native"
+                id="jiraSearch"
+                type="text"
+                placeholder="이슈 / 브랜치 / 메모 검색..."
+            /></label>
+            <div class="state" id="jiraState" hidden></div>
+            <section class="issue-list" id="issueList"></section>
+          </section>
+
+          <section class="view" data-panel="pr">
+            <section class="summary-grid pr-summary" aria-label="PR 현황">
+              <button
+                class="summary-card is-on"
+                type="button"
+                data-pr-filter="all"
+              >
+                <span class="summary-label">ALL</span
+                ><span class="summary-num" id="nPrAll">0</span>
+              </button>
+              <button class="summary-card" type="button" data-pr-filter="open">
+                <span class="summary-label">OPEN</span
+                ><span class="summary-num" id="nPrOpen">0</span>
+              </button>
+              <button
+                class="summary-card"
+                type="button"
+                data-pr-filter="merged"
+              >
+                <span class="summary-label">MERGED</span
+                ><span class="summary-num" id="nPrMerged">0</span>
+              </button>
+              <button
+                class="summary-card"
+                type="button"
+                data-pr-filter="closed"
+              >
+                <span class="summary-label">CLOSED</span
+                ><span class="summary-num" id="nPrClosed">0</span>
+              </button>
+            </section>
+            <label class="search"
+              ><span class="svg-icon i-search"></span
+              ><input
+                class="search-input-native"
+                id="prSearch"
+                type="text"
+                placeholder="PR 제목 / 브랜치 / 레포 검색..."
+            /></label>
+            <div class="state" id="prState" hidden></div>
+            <section class="pr-list" id="prList"></section>
+          </section>
+
+          <section class="view" data-panel="settings">
+            <div class="settings-body">
+              <article class="setting-card">
+                <div class="setting-title">Settings</div>
+                <div class="setting-desc">
+                  실제 Jira / GitHub 설정과 저장소 데이터를 그대로 연결해요.
+                </div>
+                <section class="setting-section">
+                  <div class="setting-section-head">
+                    <div>
+                      <div class="setting-section-kicker">Appearance</div>
+                      <div class="setting-title" style="font-size: 14px">
+                        Personalization
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="userName">사용자 이름</label
+                    ><input
+                      id="userName"
+                      class="field-input"
+                      type="text"
+                      placeholder="goeun"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label for="dockCharacter">Dock 캐릭터 선택</label
+                    ><select id="dockCharacter" class="field-input">
+                      <option value="quokka">쿼카 🐨</option>
+                      <option value="rabbit">토끼 🐰</option>
+                    </select>
+                  </div>
+                </section>
+                <section class="setting-section">
+                  <div class="setting-section-head">
+                    <div>
+                      <div class="setting-section-kicker">Jira</div>
+                      <div class="setting-title" style="font-size: 14px">
+                        Issue Sync
+                      </div>
+                    </div>
+                    <span class="repo-tag base">required</span>
+                  </div>
+                  <div class="form-row">
+                    <label for="jiraUrl">Jira URL</label
+                    ><input
+                      id="jiraUrl"
+                      class="field-input"
+                      type="text"
+                      placeholder="https://yourcompany.atlassian.net"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label for="jiraToken">Jira Personal Access Token</label
+                    ><input
+                      id="jiraToken"
+                      class="field-input"
+                      type="password"
+                      placeholder="PAT 입력"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label class="setting-check" for="usePersonalJira">
+                      <input id="usePersonalJira" type="checkbox" />
+                      <span>개인 Jira 사용</span>
+                    </label>
+                  </div>
+                  <div class="form-row" id="jiraEmailWrap" hidden>
+                    <label for="jiraEmail">Jira Email</label>
+                    <input
+                      id="jiraEmail"
+                      class="field-input"
+                      type="email"
+                      placeholder="Atlassian 로그인 이메일"
+                      autocomplete="email"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label for="doneDays">Done 이슈 보관 기간</label
+                    ><select id="doneDays" class="field-input">
+                      <option value="30">30일</option>
+                      <option value="60">60일</option>
+                      <option value="90">90일</option>
+                    </select>
+                  </div>
+                </section>
+                <section class="setting-section">
+                  <div class="setting-section-head">
+                    <div>
+                      <div class="setting-section-kicker">GitHub</div>
+                      <div class="setting-title" style="font-size: 14px">
+                        PR Sync
+                      </div>
+                    </div>
+                    <span class="repo-tag base">auto PR</span>
+                  </div>
+                  <div class="form-row">
+                    <label for="githubUrl">GitHub URL</label
+                    ><input
+                      id="githubUrl"
+                      class="field-input"
+                      type="text"
+                      placeholder="https://github.company.com"
+                    />
+                  </div>
+                  <div class="form-row">
+                    <label for="githubToken">GitHub Token</label
+                    ><input
+                      id="githubToken"
+                      class="field-input"
+                      type="password"
+                      placeholder="PAT 입력"
+                    />
+                  </div>
+                  <div class="repo-box">
+                    <div class="setting-title" style="font-size: 13px">
+                      Repositories
+                    </div>
+                    <div class="setting-desc">
+                      레포와 base 브랜치를 한 줄로 추가해요. Base는 여러 개면
+                      쉼표로 입력해요.
+                    </div>
+                    <div class="repo-row">
+                      <input
+                        class="field-input"
+                        id="repoFullName"
+                        type="text"
+                        placeholder="org-publisher/starro"
+                        aria-label="레포지토리 입력"
+                      />
+                      <input
+                        class="field-input"
+                        id="repoBranches"
+                        type="text"
+                        placeholder="dev,main,stg"
+                        aria-label="base 브랜치 입력"
+                      />
+                      <button
+                        class="mini-btn"
+                        id="addRepoBtn"
+                        type="button"
+                        aria-label="추가"
+                      >
+                        <span class="svg-icon i-plus"></span>
+                      </button>
+                    </div>
+                    <div class="repo-list" id="repoList"></div>
+                  </div>
+                </section>
+                <button class="save-btn" id="saveSettingsBtn" type="button">
+                  저장하고 메인으로
+                </button>
+              </article>
+            </div>
+          </section>
         </section>
+        <div class="speech" id="speech">
+          쿼카를 누르면 Jira 이슈, 토끼를 누르면 PR을 열어요
+        </div>
       </section>
-      <div class="speech" id="speech">쿼카를 누르면 Jira 이슈, 토끼를 누르면 PR을 열어요</div>
-    </section>
 
-    <div class="dock-bottom-native" id="dock">
-
-      <button class="dock-handle" id="dockHandle" type="button" aria-label="Dock 이동">⋮⋮</button>
-      <button class="dock-native-btn" id="dockBtn" type="button"><img src="assets/quokka.webp" alt="" /></button>
-      <button class="dock-native-btn" id="ghDockBtn" type="button"><img src="assets/rabit.webp" alt="" /></button>
-    </div>
-  </main>
-
-  <template id="issueCardTemplate">
-    <article class="issue-card">
-      <div class="issue-top">
-        <button class="type-icon" type="button" title="키 복사"></button>
-        <div class="issue-main">
-          <div class="issue-key"></div>
-          <div class="issue-title issue-title-link"></div>
-        </div>
-        <div class="pin"><button type="button" title="핀"></button></div>
+      <div class="dock-bottom-native" id="dock">
+        <button
+          class="dock-handle"
+          id="dockHandle"
+          type="button"
+          aria-label="Dock 이동"
+        >
+          ⋮⋮
+        </button>
+        <button class="dock-native-btn" id="dockBtn" type="button">
+          <img src="assets/quokka.webp" alt="" />
+        </button>
+        <button class="dock-native-btn" id="ghDockBtn" type="button">
+          <img src="assets/rabit.webp" alt="" />
+        </button>
       </div>
-      <div class="meta-row">
-        <span class="badge issue-status"></span>
-        <span class="badge gray issue-priority"></span>
-        <span class="badge gray issue-date"></span>
-      </div>
-      <div class="branch-box">
-        <div class="branch-header-row">
-          <span class="branch-label">Branch</span>
-          <button class="branch-add-btn" type="button" aria-label="브랜치 추가" title="브랜치 추가">+</button>
+    </main>
+
+    <template id="issueCardTemplate">
+      <article class="box_card">
+        <div class="issue-top">
+          <button class="type-icon" type="button" title="키 복사"></button>
+          <div class="issue-main">
+            <div class="pr-info-row">
+              <span class="issue-key"></span>
+              <span class="badge issue-status"></span>
+              <span class="date-label"></span>
+            </div>
+            <div class="issue-title issue-title-link"></div>
+          </div>
+          <div class="pin"><button type="button" title="핀"></button></div>
         </div>
-        <div class="link-stack branch-stack"></div>
-        <div class="branch-edit-area">
-          <div class="branch-add-row">
-            <input class="branch-input" type="text" placeholder="feature/branch-name" />
-            <button class="branch-save-btn row-btn" type="button" aria-label="저장"><span class="svg-icon i-check"></span></button>
+        <div class="branch-box">
+          <div class="branch-header-row">
+            <span class="branch-label">Branch</span>
+            <button
+              class="branch-add-btn"
+              type="button"
+              aria-label="브랜치 추가"
+              title="브랜치 추가"
+            >
+              +
+            </button>
+          </div>
+          <div class="link-stack branch-stack"></div>
+          <div class="branch-edit-area">
+            <div class="branch-add-row">
+              <input
+                class="branch-input"
+                type="text"
+                placeholder="feature/branch-name"
+              />
+              <button
+                class="branch-save-btn row-btn"
+                type="button"
+                aria-label="저장"
+              >
+                <span class="svg-icon i-check"></span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="memo-box memo-toggle">
-        <div class="memo-label"><span class="svg-icon i-doc"></span> Memo</div>
-        <div class="memo-edit-actions">
-          <button class="memo-link-toggle" type="button" aria-label="메모 편집"><span class="svg-icon i-edit"></span></button>
-        </div>
-        <div class="memo-text"></div>
-        <div class="memo-inline-edit">
-          <textarea class="memo-inline-textarea" aria-label="메모 수정"></textarea>
-        </div>
-        <div class="saved-links"></div>
-        <div class="saved-link-add-panel">
-          <div class="link-edit-head"><span class="link-edit-title">링크 관리</span></div>
-          <div class="link-manage-list"></div>
-          <div class="link-new-row">
-            <span class="link-icon-placeholder"></span>
-            <input class="link-input new-link-input" type="text" placeholder="https://..." />
-            <button class="link-manage-btn add-link-btn" type="button" aria-label="추가"><span class="svg-icon i-check"></span></button>
+        <div class="memo-box">
+          <div class="memo-label">
+            <span class="svg-icon i-doc"></span> Memo
+          </div>
+          <div class="memo-edit-actions">
+            <button
+              class="memo-link-toggle"
+              type="button"
+              aria-label="메모 편집"
+            >
+              <span class="svg-icon i-edit"></span>
+            </button>
+          </div>
+          <div class="memo-text"></div>
+          <div class="memo-inline-edit">
+            <textarea
+              class="memo-inline-textarea"
+              aria-label="메모 수정"
+            ></textarea>
+          </div>
+          <div class="saved-links"></div>
+          <div class="saved-link-add-panel">
+            <div class="link-edit-head">
+              <span class="link-edit-title">link</span>
+            </div>
+            <div class="link-manage-list"></div>
+            <div class="link-new-row">
+              <span class="link-icon-placeholder"></span>
+              <input
+                class="link-input new-link-input"
+                type="text"
+                placeholder="https://..."
+              />
+              <button
+                class="link-manage-btn add-link-btn"
+                type="button"
+                aria-label="추가"
+              >
+                <span class="svg-icon i-check"></span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="card-pills">
-        <button class="pill-btn pill-branch" type="button">+ Branch</button>
-        <button class="pill-btn pill-memo" type="button">+ Memo</button>
-      </div>
-    </article>
-  </template>
+        <div class="card-pills">
+          <button class="pill-btn pill-branch" type="button">+ Branch</button>
+          <button class="pill-btn pill-memo" type="button">+ Memo</button>
+        </div>
+      </article>
+    </template>
 
-  <template id="branchRowTemplate">
-    <div class="linked-row branch-row">
-      <div class="branch-read">
-        <span class="linked-dot branch"></span>
-        <span><strong class="branch-name"></strong></span>
-        <span class="row-actions">
-          <button class="row-btn copy" type="button" aria-label="복사"></button>
-          <button class="row-btn edit" type="button" aria-label="수정"></button>
-          <button class="row-btn danger" type="button" aria-label="삭제"></button>
-        </span>
+    <template id="branchRowTemplate">
+      <div class="linked-row branch-row">
+        <div class="branch-read">
+          <span class="linked-dot branch"></span>
+          <span><strong class="branch-name"></strong></span>
+          <span class="row-actions">
+            <button
+              class="row-btn copy"
+              type="button"
+              aria-label="복사"
+            ></button>
+            <button
+              class="row-btn edit"
+              type="button"
+              aria-label="수정"
+            ></button>
+            <button
+              class="row-btn danger"
+              type="button"
+              aria-label="삭제"
+            ></button>
+          </span>
+        </div>
+        <div class="branch-edit-line" hidden>
+          <input class="branch-input branch-edit-input" type="text" />
+          <button class="row-btn save" type="button" aria-label="저장"></button>
+          <button
+            class="row-btn cancel"
+            type="button"
+            aria-label="취소"
+          ></button>
+        </div>
       </div>
-      <div class="branch-edit-line" hidden>
-        <input class="branch-input branch-edit-input" type="text" />
-        <button class="row-btn save" type="button" aria-label="저장"></button>
-        <button class="row-btn cancel" type="button" aria-label="취소"></button>
-      </div>
-    </div>
-  </template>
+    </template>
 
-  <template id="savedLinkTemplate">
-    <span class="saved-link">
-      <span class="saved-link-icon"></span>
-      <span class="saved-link-text"></span>
-    </span>
-  </template>
+    <template id="savedLinkTemplate">
+      <span class="saved-link">
+        <span class="saved-link-icon"></span>
+        <span class="saved-link-text"></span>
+      </span>
+    </template>
 
-  <template id="linkIconSelectTemplate">
-    <div class="link-icon-select">
-      <button class="link-ico link-ico-current" type="button" data-icon-id="icoLink" aria-label="링크 아이콘 선택"></button>
-      <div class="link-picker"></div>
-    </div>
-  </template>
-
-  <template id="linkManageItemTemplate">
-    <div class="link-manage-item">
+    <template id="linkIconSelectTemplate">
       <div class="link-icon-select">
-        <button class="link-ico link-ico-current" type="button" data-icon-id="icoLink" aria-label="링크 아이콘 선택"></button>
+        <button
+          class="link-ico link-ico-current"
+          type="button"
+          data-icon-id="icoLink"
+          aria-label="링크 아이콘 선택"
+        ></button>
         <div class="link-picker"></div>
       </div>
-      <div class="link-inputs">
-        <input class="link-input link-label-input" type="text" placeholder="링크 이름" />
-        <input class="link-input link-url-input" type="text" placeholder="URL" />
-      </div>
-      <div class="link-manage-actions">
-        <button class="link-manage-btn save" type="button" aria-label="저장"></button>
-        <button class="link-manage-btn danger" type="button" aria-label="삭제"></button>
-      </div>
-    </div>
-  </template>
+    </template>
 
-  <template id="prCardTemplate">
-    <article class="pr-card">
-      <button class="pr-copy-btn" type="button" aria-label="PR 링크 복사" title="PR 링크 복사"><span class="svg-icon i-link"></span></button>
-      <div class="pr-card-row">
-        <button class="pr-action-btn" type="button" aria-label="PR 열기"></button>
-        <div class="pr-main">
-          <div class="pr-info-row">
-            <span class="pr-repo"></span>
-            <span class="badge pr-state"></span>
-            <span class="pr-date-label"></span>
-          </div>
-          <button class="pr-title" type="button"></button>
+    <template id="linkManageItemTemplate">
+      <div class="link-manage-item">
+        <div class="link-icon-select">
+          <button
+            class="link-ico link-ico-current"
+            type="button"
+            data-icon-id="icoLink"
+            aria-label="링크 아이콘 선택"
+          ></button>
+          <div class="link-picker"></div>
+        </div>
+        <div class="link-inputs">
+          <input
+            class="link-input link-label-input"
+            type="text"
+            placeholder="링크 이름"
+          />
+          <input
+            class="link-input link-url-input"
+            type="text"
+            placeholder="URL"
+          />
+        </div>
+        <div class="link-manage-actions">
+          <button
+            class="link-manage-btn save"
+            type="button"
+            aria-label="저장"
+          ></button>
+          <button
+            class="link-manage-btn danger"
+            type="button"
+            aria-label="삭제"
+          ></button>
         </div>
       </div>
-      <div class="link-stack pr-link-stack"></div>
-    </article>
-  </template>
+    </template>
 
-  <template id="prJiraRowTemplate">
-    <button class="linked-row pr-jira-row" type="button" aria-label="연결된 Jira 열기">
-      <span class="linked-dot"></span>
-      <span class="pr-row-content">
-        <span class="pr-row-label">Jira</span>
-        <strong class="jira-key"></strong>
-        <span class="pr-row-desc">와 연결됨</span>
-      </span>
-      <span class="pr-row-cue" aria-hidden="true">↗</span>
-    </button>
-  </template>
-
-  <template id="prBranchRowTemplate">
-    <button class="pr-branch-row" type="button" aria-label="PR diff 열기">
-      <span class="pr-branch-text">
-        <span class="pr-head"></span>
-        <span class="pr-arrow">→</span>
-        <span class="pr-base"></span>
-      </span>
-      <span class="pr-row-cue" aria-hidden="true">⌁</span>
-    </button>
-  </template>
-
-<template id="repoItemTemplate">
-  <div class="repo-item">
-    <div class="repo-view">
-      <div>
-        <strong class="repo-name"></strong>
-        <div class="repo-meta"></div>
-      </div>
-      <div class="repo-actions">
-        <button class="mini-btn edit-repo" type="button" aria-label="수정"></button>
-        <button class="mini-btn danger delete-repo" type="button" aria-label="삭제"></button>
-      </div>
-    </div>
-
-    <div class="repo-edit">
-      <input class="field-input repo-edit-full" type="text" aria-label="레포지토리 수정" />
-      <input class="field-input repo-edit-branches" type="text" aria-label="base 브랜치 수정" />
-      <div class="repo-actions">
-        <button class="mini-btn save-repo" type="button" aria-label="저장">
-          <span class="svg-icon i-check"></span>
+    <template id="prCardTemplate">
+      <article class="pr-card">
+        <button
+          class="pr-copy-btn"
+          type="button"
+          aria-label="PR 링크 복사"
+          title="PR 링크 복사"
+        >
+          <span class="svg-icon i-link"></span>
         </button>
-        <button class="mini-btn cancel-repo" type="button" aria-label="취소">
-          <span class="svg-icon i-x"></span>
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
+        <div class="pr-card-row">
+          <button
+            class="pr-action-btn"
+            type="button"
+            aria-label="PR 열기"
+          ></button>
+          <div class="pr-main">
+            <div class="pr-info-row">
+              <span class="pr-repo"></span>
+              <span class="badge pr-state"></span>
+              <span class="date-label"></span>
+            </div>
+            <button class="pr-title" type="button"></button>
+          </div>
+        </div>
+        <div class="link-stack pr-link-stack"></div>
+      </article>
+    </template>
 
-  <script src="./renderer.js"></script>
-</body>
+    <template id="prJiraRowTemplate">
+      <button
+        class="linked-row pr-jira-row"
+        type="button"
+        aria-label="연결된 Jira 열기"
+      >
+        <span class="pr-row-content">
+          <span class="pr-row-label">Jira</span>
+          <strong class="jira-key"></strong>
+        </span>
+        <span class="pr-row-cue" aria-hidden="true">↗</span>
+      </button>
+    </template>
+
+    <template id="prBranchRowTemplate">
+      <button class="pr-branch-row" type="button" aria-label="PR diff 열기">
+        <span class="pr-branch-text">
+          <span class="pr-head"></span>
+          <span class="pr-arrow">→</span>
+          <span class="pr-base"></span>
+        </span>
+        <span class="pr-row-cue" aria-hidden="true">⌁</span>
+      </button>
+    </template>
+
+    <template id="emptyStateTemplate">
+      <div class="empty-inline"></div>
+    </template>
+
+    <template id="logworkItemTemplate">
+      <span class="home-mini-item">
+        <span class="home-mini-key"></span>
+        <span class="home-mini-title"></span>
+        <span class="badge primary"></span>
+      </span>
+    </template>
+
+    <template id="homeMiniItemTemplate">
+      <div class="home-mini-item">
+        <span class="home-mini-dot"></span>
+        <span class="home-mini-key"></span>
+        <span class="home-mini-title"></span>
+        <span class="badge"></span>
+      </div>
+    </template>
+
+    <template id="memoViewActionsTemplate">
+      <button class="memo-link-toggle" type="button" aria-label="메모 편집">
+        <span class="svg-icon i-edit"></span>
+      </button>
+    </template>
+
+    <template id="memoEditActionsTemplate">
+      <button class="memo-save-btn row-btn" type="button" aria-label="저장">
+        <span class="svg-icon i-check"></span>
+      </button>
+      <button class="memo-cancel-btn row-btn" type="button" aria-label="취소">
+        <span class="svg-icon i-x"></span>
+      </button>
+    </template>
+
+    <template id="repoTagTemplate">
+      <span class="repo-tag base"></span>
+    </template>
+
+    <template id="linkPickerButtonTemplate">
+      <button class="link-ico" type="button"></button>
+    </template>
+
+    <template id="repoItemTemplate">
+      <div class="repo-item">
+        <div class="repo-view">
+          <div>
+            <strong class="repo-name"></strong>
+            <div class="repo-meta"></div>
+          </div>
+          <div class="repo-actions">
+            <button
+              class="mini-btn edit-repo"
+              type="button"
+              aria-label="수정"
+            ></button>
+            <button
+              class="mini-btn danger delete-repo"
+              type="button"
+              aria-label="삭제"
+            ></button>
+          </div>
+        </div>
+
+        <div class="repo-edit">
+          <input
+            class="field-input repo-edit-full"
+            type="text"
+            aria-label="레포지토리 수정"
+          />
+          <input
+            class="field-input repo-edit-branches"
+            type="text"
+            aria-label="base 브랜치 수정"
+          />
+          <div class="repo-actions">
+            <button class="mini-btn save-repo" type="button" aria-label="저장">
+              <span class="svg-icon i-check"></span>
+            </button>
+            <button
+              class="mini-btn cancel-repo"
+              type="button"
+              aria-label="취소"
+            >
+              <span class="svg-icon i-x"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script src="./renderer.js"></script>
+  </body>
 </html>
