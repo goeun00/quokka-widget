@@ -3,6 +3,8 @@ window.api = {
   getSettings: () => ipcRenderer.invoke("get-settings"),
   saveSettings: (s) => ipcRenderer.invoke("save-settings", s),
   fetchIssues: () => ipcRenderer.invoke("fetch-issues"),
+  fetchWorklogs: (monthOffset) =>
+    ipcRenderer.invoke("fetch-worklogs", monthOffset),
   fetchIssuesByKeys: (keys) => ipcRenderer.invoke("fetch-issues-by-keys", keys),
   getMemos: () => ipcRenderer.invoke("get-memos"),
   saveMemos: (m) => ipcRenderer.invoke("save-memos", m),

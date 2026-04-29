@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, screen, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { fetchMyIssues, fetchIssuesByKeys } = require("./jira");
+const { fetchMyIssues, fetchIssuesByKeys, fetchMyWorklogs } = require("./jira");
 const { fetchMyPRs } = require("./github");
 const Store = require("./store");
 
@@ -103,6 +103,12 @@ ipcMain.handle("fetch-issues", async () => {
   const s = store.get("settings") || {};
   if (!s.baseUrl || !s.pat) throw new Error("설정을 먼저 입력해주세요!");
   return await fetchMyIssues(s.baseUrl, s.pat, s.doneDays || 60, s.email || "");
+});
+
+ipcMain.handle("fetch-worklogs", async (_, monthOffset = 0) => {
+  const s = store.get("settings") || {};
+  if (!s.baseUrl || !s.pat) throw new Error("설정을 먼저 입력해주세요!");
+  return await fetchMyWorklogs(s.baseUrl, s.pat, monthOffset, s.email || "");
 });
 
 ipcMain.handle("fetch-issues-by-keys", async (_, keys) => {

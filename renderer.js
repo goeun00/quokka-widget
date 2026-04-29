@@ -9,6 +9,26 @@ function cloneTemplate(id) {
   return template.content.firstElementChild.cloneNode(true);
 }
 
+function renderEmptyState(target, message) {
+  if (!target) return;
+
+  target.replaceChildren();
+  const empty = cloneTemplate("emptyStateTemplate");
+  empty.textContent = message;
+  target.appendChild(empty);
+}
+
+function setMemoActions(card, mode = "view") {
+  const wrap = $(".memo-edit-actions", card);
+  if (!wrap) return;
+
+  wrap.replaceChildren();
+  const templateId =
+    mode === "edit" ? "memoEditActionsTemplate" : "memoViewActionsTemplate";
+  const fragment = document.getElementById(templateId)?.content.cloneNode(true);
+  if (fragment) wrap.appendChild(fragment);
+}
+
 const icon = (name, extra = "") =>
   `<span class="svg-icon i-${name}${extra ? ` ${extra}` : ""}"></span>`;
 
@@ -115,10 +135,19 @@ function setView(view) {
   if (view === "pr") renderPRs();
   if (view === "home") renderHome();
 }
-function setLoading(kind, msg) {
-  const el = kind === "jira" ? $("#jiraState") : $("#prState");
-  el.hidden = !msg;
-  el.textContent = msg || "";
+
+function setLoading(type, text) {
+  const map = {
+    jira: "#jiraState",
+    pr: "#prState",
+    logwork: "#logworkState",
+  };
+  const selector = map[type];
+  if (!selector) return;
+  const el = $(selector);
+  if (!el) return;
+  el.textContent = text;
+  el.hidden = !text;
 }
 
 function fmtDate(d) {
@@ -131,22 +160,40 @@ function fmtDate(d) {
   if (diff < 30) return `${Math.floor(diff / 7)}주 전`;
   return `${Math.floor(diff / 30)}달 전`;
 }
+function formatDecimal(num) {
+  return Number(num || 0)
+    .toFixed(3)
+    .replace(/\.?0+$/, "");
+}
+
 function issueCat(issue) {
-  if (issue.statusCategory === "done") return "done";
-  const n = String(issue.status || "").toLowerCase();
-  if (/(progress|wip|testing|review|doing)/.test(n)) return "wip";
+  const cat = String(issue.statusCategory || "").toLowerCase();
+  if (cat === "done") return "done";
+  if (cat === "indeterminate") return "wip";
   return "todo";
 }
+
 function badgeClass(cat) {
   return cat === "done" ? "done" : cat === "wip" ? "doing" : "todo";
 }
+
 function typeInfo(type = "") {
-  const t = String(type).toLowerCase();
-  if (t.includes("bug")) return { cls: "bug", icon: ICONS.bug };
-  if (t.includes("story")) return { cls: "story", icon: ICONS.story };
-  if (t.includes("epic")) return { cls: "epic", icon: ICONS.epic };
+  const t = String(type).toLowerCase().trim();
+  if (t === "bug") {
+    return { cls: "bug", icon: ICONS.bug };
+  }
+  if (t === "story") {
+    return { cls: "story", icon: ICONS.story };
+  }
+  if (t === "epic") {
+    return { cls: "epic", icon: ICONS.epic };
+  }
+  if (t === "sub-task" || t === "subtask") {
+    return { cls: "task", icon: ICONS.task };
+  }
   return { cls: "task", icon: ICONS.task };
 }
+
 function linkLabel(url) {
   try {
     const u = new URL(url);
@@ -227,7 +274,6 @@ function matchesField(fields, field, value) {
     summary: ["title"],
     status: ["status"],
     state: ["status", "state"],
-    priority: ["priority"],
     type: ["type"],
     memo: ["memo"],
     branch: ["branch", "head", "base"],
@@ -267,7 +313,6 @@ function issueSearchFields(issue) {
     key,
     title: issue.summary || "",
     status: `${issue.status || ""} ${cat}`,
-    priority: issue.priority || "",
     type: issue.issueType || "",
     memo: state.memos[key] || "",
     branch: branches.join(" "),
@@ -297,10 +342,12 @@ async function boot() {
   bindHome();
   await loadLocalState();
   await loadSettings();
+
   await Promise.allSettled([
     fetchIssues({ silent: true }),
     fetchPRs({ silent: true }),
   ]);
+  await fetchLogwork();
   renderAll();
 }
 
@@ -319,14 +366,21 @@ function bindChrome() {
     if (state.panelOpen && state.view === "pr" && !state.prs.length)
       await fetchPRs();
   });
-  
+
   updateDockVisibility();
   $("#closePanelBtn").addEventListener("click", () => setPanel(false));
   $("#refreshBtn").addEventListener("click", async () => {
-    if (state.view === "pr") await fetchPRs();
-    else if (state.view === "settings")
-      await Promise.all([fetchIssues(), fetchPRs()]);
-    else await fetchIssues();
+    if (state.view === "home") {
+      await fetchLogwork();
+      renderHome();
+    } else if (state.view === "pr") {
+      await fetchPRs();
+    } else if (state.view === "settings") {
+      await Promise.all([fetchIssues(), fetchPRs(), fetchLogwork()]);
+      renderAll();
+    } else {
+      await Promise.all([fetchIssues(), fetchLogwork()]);
+    }
   });
   $("#settingsBtn").addEventListener("click", () => {
     if (state.view === "settings") setView(state.previousView || "jira");
@@ -429,141 +483,200 @@ function bindFilters() {
     }),
   );
 }
-/* ─── Logwork helpers ─── */
-function logworkKey(offset = 0) {
+function getLogworkMonth(offset = 0) {
   const d = new Date();
+  d.setDate(1);
   d.setMonth(d.getMonth() + offset);
+  return d;
+}
+
+function logworkKey(offset = 0) {
+  const d = getLogworkMonth(offset);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
 function loadLogwork() {
   state.logwork = JSON.parse(localStorage.getItem("logwork") || "{}");
 }
+
 function saveLogwork() {
   localStorage.setItem("logwork", JSON.stringify(state.logwork));
 }
+
 function getLogworkData(offset = 0) {
-  return state.logwork[logworkKey(offset)] || { logged: 0, target: 20 };
+  return (
+    state.logwork[logworkKey(offset)] || {
+      logged: 0,
+      target: 20,
+      seconds: 0,
+      logs: [],
+    }
+  );
 }
-function setLogworkData(offset, patch) {
+
+function setLogworkTarget(offset, target) {
   const key = logworkKey(offset);
-  state.logwork[key] = { ...getLogworkData(offset), ...patch };
+
+  state.logwork[key] = {
+    ...getLogworkData(offset),
+    target,
+  };
+
   saveLogwork();
 }
 
 function bindHome() {
-  $("#logworkPrev").addEventListener("click", () => {
+  $("#logworkPrev").addEventListener("click", async () => {
     state.logworkOffset -= 1;
-    renderLogwork();
+    await fetchLogwork();
   });
-  $("#logworkNext").addEventListener("click", () => {
+
+  $("#logworkNext").addEventListener("click", async () => {
     if (state.logworkOffset >= 0) return;
     state.logworkOffset += 1;
-    renderLogwork();
+    await fetchLogwork();
   });
 
-  /* edit logged */
-  $("#logworkLoggedBtn").addEventListener("click", () => {
-    const { logged } = getLogworkData(state.logworkOffset);
-    $("#logworkLoggedInput").value = logged;
-    $("#logworkLoggedForm").hidden = false;
-    $("#logworkTargetForm").hidden = true;
-    $("#logworkLoggedInput").focus();
-    $("#logworkLoggedInput").select();
-  });
-  $("#logworkLoggedSave").addEventListener("click", () => {
-    const val = Number($("#logworkLoggedInput").value);
-    if (!isNaN(val) && val >= 0) setLogworkData(state.logworkOffset, { logged: val });
-    $("#logworkLoggedForm").hidden = true;
-    renderLogwork();
-  });
-  $("#logworkLoggedCancel").addEventListener("click", () => {
-    $("#logworkLoggedForm").hidden = true;
-  });
-  $("#logworkLoggedInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") $("#logworkLoggedSave").click();
-    if (e.key === "Escape") $("#logworkLoggedCancel").click();
-  });
-
-  /* edit target */
   $("#logworkEditTargetBtn").addEventListener("click", () => {
     const { target } = getLogworkData(state.logworkOffset);
+
     $("#logworkTargetInput").value = target;
     $("#logworkTargetForm").hidden = false;
-    $("#logworkLoggedForm").hidden = true;
     $("#logworkTargetInput").focus();
     $("#logworkTargetInput").select();
   });
+
   $("#logworkTargetSave").addEventListener("click", () => {
     const val = Number($("#logworkTargetInput").value);
-    if (!isNaN(val) && val > 0) setLogworkData(state.logworkOffset, { target: val });
+
+    if (!isNaN(val) && val > 0) {
+      setLogworkTarget(state.logworkOffset, val);
+    }
+
     $("#logworkTargetForm").hidden = true;
     renderLogwork();
   });
+
   $("#logworkTargetCancel").addEventListener("click", () => {
     $("#logworkTargetForm").hidden = true;
   });
+
   $("#logworkTargetInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") $("#logworkTargetSave").click();
     if (e.key === "Escape") $("#logworkTargetCancel").click();
   });
 }
 
-/* ─── Home render ─── */
+function renderLogworkList(logs = []) {
+  const list = $("#logworkList");
+  if (!list) return;
+
+  list.replaceChildren();
+
+  if (!logs.length) {
+    renderEmptyState(list, "이번 달 등록한 로그워크가 없어요");
+    return;
+  }
+
+  logs
+    .slice()
+    .sort((a, b) => new Date(b.started) - new Date(a.started))
+    .forEach((log) => {
+      const date = log.started
+        ? new Date(log.started)
+            .toLocaleDateString("ko-KR", {
+              timeZone: "Asia/Seoul",
+              month: "2-digit",
+              day: "2-digit",
+            })
+            .replace(/\.\s?/g, "")
+            .replace(/^(\d{2})(\d{2})$/, "$1/$2")
+        : "-";
+      const item = cloneTemplate("logworkItemTemplate");
+      item.dataset.issueKey = log.issueKey || "";
+      $(".home-mini-key", item).textContent = `${date}`;
+      $(".home-mini-title", item).textContent = log.summary || "";
+      $(".badge", item).textContent = `${log.timeSpent || ""}`;
+
+      item.addEventListener("click", () => {
+        const key = item.dataset.issueKey;
+        const baseUrl = String(state.jira.baseUrl || "").replace(/\/$/, "");
+        if (baseUrl && key) window.api?.openUrl?.(`${baseUrl}/browse/${key}`);
+      });
+      list.appendChild(item);
+    });
+}
 function renderLogwork() {
   const offset = state.logworkOffset;
-  const { logged, target } = getLogworkData(offset);
-
-  /* hide edit forms when switching months */
-  $("#logworkLoggedForm").hidden = true;
+  const { logged, target, logs = [] } = getLogworkData(offset);
   $("#logworkTargetForm").hidden = true;
+  const d = getLogworkMonth(offset);
+  const months = [
+    "1월",
+    "2월",
+    "3월",
+    "4월",
+    "5월",
+    "6월",
+    "7월",
+    "8월",
+    "9월",
+    "10월",
+    "11월",
+    "12월",
+  ];
 
-  const d = new Date();
-  d.setMonth(d.getMonth() + offset);
-  const months = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
-  $("#logworkMonthLabel").textContent = `${d.getFullYear()}년 ${months[d.getMonth()]}`;
+  $("#logworkMonthLabel").textContent =
+    `${d.getFullYear()}년 ${months[d.getMonth()]}`;
 
-  const pct = target > 0 ? Math.min(100, Math.round((logged / target) * 100)) : 0;
+  const pct =
+    target > 0 ? Math.min(100, Math.round((logged / target) * 100)) : 0;
+
   const remaining = Math.max(0, target - logged);
 
-  $("#logworkLoggedVal").textContent = logged;
+  $("#logworkLoggedVal").textContent = formatDecimal(logged);
   $("#logworkTargetVal").textContent = target;
 
   const fill = $("#logworkFill");
   fill.style.width = `${pct}%`;
   fill.classList.toggle("is-done", pct >= 100);
 
-  $("#logworkPct").textContent = `${pct}%`;
-  $("#logworkRemain").textContent = remaining > 0 ? `${remaining}d 남음` : "목표 달성! 🎉";
+  $("#logworkPct").textContent = `${formatDecimal(pct)}%`;
+  $("#logworkRemain").textContent =
+    remaining > 0 ? `${formatDecimal(remaining)}d 남음` : "목표 달성! 🎉";
 
   $("#logworkNext").disabled = offset >= 0;
-}
 
+  renderLogworkList(logs);
+}
 function renderHomeJira() {
   const list = $("#homeJiraList");
   const items = state.issues
     .filter((issue) => issueCat(issue) !== "done")
     .slice(0, 5);
 
-  list.innerHTML = "";
+  list.replaceChildren();
 
   if (!items.length) {
-    list.innerHTML = `<div class="empty-inline">${state.issues.length ? "진행 중인 이슈가 없어요 🎉" : "이슈가 없어요"}</div>`;
+    renderEmptyState(
+      list,
+      state.issues.length ? "진행 중인 이슈가 없어요 🎉" : "이슈가 없어요",
+    );
     return;
   }
 
   items.forEach((issue) => {
     const cat = issueCat(issue);
-    const dotColor = cat === "wip" ? "var(--blue)" : "var(--yellow)";
-    const el = document.createElement("div");
-    el.className = "home-mini-item";
-    el.innerHTML = `
-      <span class="home-mini-dot" style="background:${dotColor}"></span>
-      <span class="home-mini-key">${esc(issue.key)}</span>
-      <span class="home-mini-title">${esc(issue.summary || "")}</span>
-      <span class="home-mini-badge ${badgeClass(cat)}">${esc(issue.status || cat)}</span>
-    `;
-    el.addEventListener("click", () => window.api?.openUrl?.(issue.url));
-    list.appendChild(el);
+    const item = cloneTemplate("homeMiniItemTemplate");
+    $(".home-mini-dot", item).style.background =
+      cat === "wip" ? "var(--blue)" : "var(--gray)";
+    $(".home-mini-key", item).textContent = issue.key;
+    $(".home-mini-title", item).textContent = issue.summary || "";
+    const badge = $(".badge", item);
+    badge.classList.add(badgeClass(cat));
+    badge.textContent = issue.status || cat;
+    item.addEventListener("click", () => window.api?.openUrl?.(issue.url));
+    list.appendChild(item);
   });
 }
 
@@ -571,27 +684,31 @@ function renderHomePR() {
   const list = $("#homePRList");
   const items = state.prs.filter((pr) => pr.stateGroup === "open").slice(0, 5);
 
-  list.innerHTML = "";
+  list.replaceChildren();
 
   if (!items.length) {
-    list.innerHTML = `<div class="empty-inline">${state.prs.length ? "오픈 PR이 없어요 🎉" : "PR이 없어요"}</div>`;
+    renderEmptyState(
+      list,
+      state.prs.length ? "오픈 PR이 없어요 🎉" : "PR이 없어요",
+    );
     return;
   }
 
   items.forEach((pr) => {
-    const el = document.createElement("div");
-    el.className = "home-mini-item";
-    el.innerHTML = `
-      <span class="home-mini-dot" style="background:var(--green)"></span>
-      <span class="home-mini-key">#${esc(String(pr.number))}</span>
-      <span class="home-mini-title">${esc(pr.title || "")}</span>
-      <span class="home-mini-badge open">${esc(pr.stateLabel || "Open")}</span>
-    `;
-    el.addEventListener("click", () => pr.url && window.api?.openUrl?.(pr.url));
-    list.appendChild(el);
+    const item = cloneTemplate("homeMiniItemTemplate");
+    $(".home-mini-dot", item).style.background = "var(--green)";
+    $(".home-mini-key", item).textContent = `#${pr.number || ""}`;
+    $(".home-mini-title", item).textContent = pr.title || "";
+    const badge = $(".badge", item);
+    badge.classList.add("open");
+    badge.textContent = pr.stateLabel || "Open";
+    item.addEventListener(
+      "click",
+      () => pr.url && window.api?.openUrl?.(pr.url),
+    );
+    list.appendChild(item);
   });
 }
-
 function renderHome() {
   renderLogwork();
   renderHomeJira();
@@ -689,6 +806,26 @@ async function fetchIssues({ silent = false } = {}) {
   }
   updateCounts();
 }
+async function fetchLogwork() {
+  setLoading("logwork", "로그워크 불러오는 중...");
+
+  try {
+    const data = await window.api.fetchWorklogs(state.logworkOffset);
+
+    state.logwork[logworkKey(state.logworkOffset)] = {
+      logged: data.loggedDays,
+      target: getLogworkData(state.logworkOffset).target,
+      seconds: data.totalSeconds,
+      logs: data.logs,
+    };
+
+    renderLogwork();
+  } catch (e) {
+    console.warn(e);
+  } finally {
+    setLoading("logwork", "");
+  }
+}
 async function ensurePinnedIssues() {
   const pinnedKeys = [...state.pins];
   if (!pinnedKeys.length) return;
@@ -748,11 +885,14 @@ function updateCounts() {
     state.pins.has(issue.key),
   ).length;
   $("#tabJiraCount").textContent = state.issues.length;
+
   const open = state.prs.filter((p) => p.stateGroup === "open").length;
-  const done = state.prs.length - open;
+  const merged = state.prs.filter((p) => p.stateGroup === "merged").length;
+  const closed = state.prs.filter((p) => p.stateGroup === "closed").length;
   $("#nPrAll").textContent = state.prs.length;
   $("#nPrOpen").textContent = open;
-  $("#nPrDone").textContent = done;
+  $("#nPrMerged").textContent = merged;
+  $("#nPrClosed").textContent = closed;
   $("#tabPrCount").textContent = open;
 }
 
@@ -768,9 +908,12 @@ function renderIssues() {
     items = items.filter((issue) =>
       matchesQuery(issueSearchFields(issue), query),
     );
-  list.innerHTML = "";
+  list.replaceChildren();
   if (!items.length) {
-    list.innerHTML = `<div class="empty-inline">${state.issues.length ? "조건에 맞는 이슈가 없어요" : "이슈가 없어요 🎉"}</div>`;
+    renderEmptyState(
+      list,
+      state.issues.length ? "조건에 맞는 이슈가 없어요" : "이슈가 없어요 🎉",
+    );
     return;
   }
   items.forEach((issue) => list.appendChild(createIssueCard(issue)));
@@ -796,8 +939,7 @@ function createIssueCard(issue) {
   const status = $(".issue-status", card);
   status.classList.add(badgeClass(cat));
   status.textContent = issue.status || cat;
-  $(".issue-priority", card).textContent = issue.priority || "Medium";
-  $(".issue-date", card).textContent = fmtDate(issue.updated);
+  $(".date-label", card).textContent = fmtDate(issue.updated);
   $(".branch-input", card).placeholder = `feature/${key}/base`;
   $(".memo-label", card).innerHTML = `${ICONS.doc} Memo`;
   $(".memo-text", card).innerHTML = state.memos[key]
@@ -896,10 +1038,7 @@ function bindMemoToggle(card, key) {
       card.classList.add("is-memo-editing");
       $(".saved-link-add-panel", card).classList.add("is-open");
       $(".memo-inline-textarea", card).focus();
-      $(".memo-edit-actions", card).innerHTML = `
-        <button class="memo-save-btn row-btn" type="button" aria-label="저장">${ICONS.check}</button>
-        <button class="memo-cancel-btn row-btn" type="button" aria-label="취소">${ICONS.x}</button>
-      `;
+      setMemoActions(card, "edit");
 
       $(".memo-save-btn", card).addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -911,10 +1050,12 @@ function bindMemoToggle(card, key) {
           ? hl(state.memos[key], $("#jiraSearch")?.value.trim() || "")
           : "";
         card.classList.remove("is-memo-editing");
-        card.classList.toggle("has-memo", !!(state.memos[key] || (state.links[key] && state.links[key].length)));
+        card.classList.toggle(
+          "has-memo",
+          !!(state.memos[key] || (state.links[key] && state.links[key].length)),
+        );
         $(".saved-link-add-panel", card).classList.remove("is-open");
-        $(".memo-edit-actions", card).innerHTML =
-          `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
+        setMemoActions(card, "view");
         bindMemoToggle(card, key);
         showSpeech("메모를 저장했어요");
       });
@@ -924,10 +1065,12 @@ function bindMemoToggle(card, key) {
         const textarea = $(".memo-inline-textarea", card);
         textarea.value = state.memos[key] || "";
         card.classList.remove("is-memo-editing");
-        card.classList.toggle("has-memo", !!(state.memos[key] || (state.links[key] && state.links[key].length)));
+        card.classList.toggle(
+          "has-memo",
+          !!(state.memos[key] || (state.links[key] && state.links[key].length)),
+        );
         $(".saved-link-add-panel", card).classList.remove("is-open");
-        $(".memo-edit-actions", card).innerHTML =
-          `<button class="memo-link-toggle" type="button" aria-label="메모 편집">${ICONS.edit}</button>`;
+        setMemoActions(card, "view");
         bindMemoToggle(card, key);
       });
     }
@@ -1000,11 +1143,10 @@ function renderBranches(card, issue) {
 
 function fillIconPicker(wrap, selectedId = "icoLink") {
   const picker = $(".link-picker", wrap);
-  picker.innerHTML = "";
+  picker.replaceChildren();
   LINK_ICON_OPTIONS.forEach((item) => {
-    const btn = document.createElement("button");
-    btn.className = `link-ico ${item.id === selectedId ? "is-picked" : ""}`;
-    btn.type = "button";
+    const btn = cloneTemplate("linkPickerButtonTemplate");
+    btn.classList.toggle("is-picked", item.id === selectedId);
     btn.dataset.iconId = item.id;
     btn.title = item.label;
     btn.innerHTML = item.icon;
@@ -1117,20 +1259,36 @@ function renderLinks(card, issue) {
   const hasMemo = !!(state.memos[key] || arr.length);
   card.classList.toggle("has-memo", hasMemo);
 }
+function isPrDone(pr) {
+  return pr.stateGroup === "merged" || pr.stateGroup === "closed";
+}
+
 function renderPRs() {
   updateCounts();
+
   const list = $("#prList");
   const query = $("#prSearch").value.trim().toLowerCase();
-  let items = state.prs.filter((pr) =>
-    state.prFilter === "all" ? true : pr.stateGroup === state.prFilter,
-  );
-  if (query)
+
+  let items = state.prs.filter((pr) => {
+    if (state.prFilter === "all") return true;
+    if (state.prFilter === "done") return isPrDone(pr);
+    return pr.stateGroup === state.prFilter;
+  });
+
+  if (query) {
     items = items.filter((pr) => matchesQuery(prSearchFields(pr), query));
-  list.innerHTML = "";
+  }
+
+  list.replaceChildren();
+
   if (!items.length) {
-    list.innerHTML = `<div class="empty-inline">${state.prs.length ? "조건에 맞는 PR이 없어요" : "PR이 없어요 🎉"}</div>`;
+    renderEmptyState(
+      list,
+      state.prs.length ? "조건에 맞는 PR이 없어요" : "PR이 없어요 🎉",
+    );
     return;
   }
+
   items.forEach((pr) => list.appendChild(createPRCard(pr)));
 }
 function createPRCard(pr) {
@@ -1141,21 +1299,36 @@ function createPRCard(pr) {
   const prUrl = pr.url || "";
   const diffUrl = prUrl ? `${prUrl}/files` : "";
 
-  const toneClass = pr.stateGroup === "open" ? "tone-open" : pr.stateGroup === "merged" ? "tone-merged" : "tone-closed";
+  const toneClass =
+    pr.stateGroup === "open"
+      ? "tone-open"
+      : pr.stateGroup === "merged"
+        ? "tone-merged"
+        : "tone-closed";
   card.classList.add(toneClass);
 
   const actionBtn = $(".pr-action-btn", card);
-  actionBtn.innerHTML = pr.stateGroup === "open" ? "↗" : pr.stateGroup === "merged" ? "✓" : `<span class="svg-icon i-x"></span>`;
+  actionBtn.innerHTML =
+    pr.stateGroup === "open"
+      ? `<span class="svg-icon i-open"></span>`
+      : pr.stateGroup === "merged"
+        ? `<span class="svg-icon i-check"></span>`
+        : `<span class="svg-icon i-x"></span>`;
 
   $(".pr-repo", card).innerHTML =
     `${hl(pr.owner, query)} / ${hl(pr.repo, query)}`;
 
   const status = $(".pr-state", card);
-  const badgeCls = pr.stateGroup === "open" ? "done" : pr.stateGroup === "merged" ? "doing" : "closed";
+  const badgeCls =
+    pr.stateGroup === "open"
+      ? "done"
+      : pr.stateGroup === "merged"
+        ? "merged"
+        : "closed";
   status.classList.add(badgeCls);
   status.textContent = pr.stateLabel || "";
 
-  $(".pr-date-label", card).textContent = fmtDate(pr.updatedAt);
+  $(".date-label", card).textContent = fmtDate(pr.updatedAt);
 
   $(".pr-title", card).innerHTML =
     `<span class="pr-number-label">#${esc(String(pr.number || ""))}</span> ${hl(pr.title, query)}`;
@@ -1220,7 +1393,7 @@ function loadSettingsIntoForm() {
 function renderRepoList() {
   const list = $("#repoList");
   const addBtn = $("#addRepoBtn");
-  list.innerHTML = "";
+  list.replaceChildren();
   if (addBtn) {
     addBtn.innerHTML =
       state.repoEditingIndex === null
@@ -1233,7 +1406,7 @@ function renderRepoList() {
   }
 
   if (!state.reposDraft.length) {
-    list.innerHTML = `<div class="empty-inline">등록된 레포가 없어요</div>`;
+    renderEmptyState(list, "등록된 레포가 없어요");
     return;
   }
 
@@ -1247,9 +1420,13 @@ function renderRepoList() {
 
     item.classList.toggle("is-editing", state.repoEditingIndex === idx);
     $(".repo-name", item).textContent = `${repo.owner}/${repo.repo}`;
-    $(".repo-meta", item).innerHTML = branches
-      .map((b) => `<span class="repo-tag base">${esc(b)}</span>`)
-      .join("");
+    const repoMeta = $(".repo-meta", item);
+    repoMeta.replaceChildren();
+    branches.forEach((branch) => {
+      const tag = cloneTemplate("repoTagTemplate");
+      tag.textContent = branch;
+      repoMeta.appendChild(tag);
+    });
     $(".edit-repo", item).innerHTML =
       state.repoEditingIndex === idx ? ICONS.check : ICONS.edit;
     $(".delete-repo", item).innerHTML = ICONS.del;
