@@ -117,12 +117,8 @@
                     min="0"
                   />
                   <span class="logwork-edit-unit">d</span>
-                  <button class="logwork-save-btn" id="logworkLoggedSave">
-                    ✓
-                  </button>
-                  <button class="logwork-cancel-btn" id="logworkLoggedCancel">
-                    ✕
-                  </button>
+                  <button class="ic-btn primary" id="logworkLoggedSave"><span class="svg-icon i-check"></span></button>
+                  <button class="ic-btn" id="logworkLoggedCancel"><span class="svg-icon i-x"></span></button>
                 </div>
                 <div class="logwork-edit-form" id="logworkTargetForm" hidden>
                   <span class="logwork-edit-label">목표</span>
@@ -133,12 +129,8 @@
                     min="1"
                   />
                   <span class="logwork-edit-unit">d</span>
-                  <button class="logwork-save-btn" id="logworkTargetSave">
-                    ✓
-                  </button>
-                  <button class="logwork-cancel-btn" id="logworkTargetCancel">
-                    ✕
-                  </button>
+                  <button class="ic-btn primary" id="logworkTargetSave"><span class="svg-icon i-check"></span></button>
+                  <button class="ic-btn" id="logworkTargetCancel"><span class="svg-icon i-x"></span></button>
                 </div>
                 <div class="logwork-track">
                   <div class="logwork-fill" id="logworkFill"></div>
@@ -151,6 +143,7 @@
               <div class="box_card">
                 <div class="section-head">
                   <span class="home-section-label">Logged Issues</span>
+                  <button class="mini-btn" id="exportReportBtn" type="button">엑셀</button>
                 </div>
                 <div class="home-mini-list" id="logworkList"></div>
               </div>
@@ -437,25 +430,25 @@
         <div class="issue-top">
           <button class="type-icon" type="button" title="키 복사"></button>
           <div class="issue-main">
-            <div class="pr-info-row">
+            <div class="info-row">
               <span class="issue-key"></span>
               <span class="badge issue-status"></span>
               <span class="date-label"></span>
             </div>
             <div class="issue-title issue-title-link"></div>
           </div>
-          <div class="pin"><button type="button" title="핀"></button></div>
+          <div class="pin"><button class="ic-btn sm" type="button" title="핀"></button></div>
         </div>
         <div class="branch-box">
           <div class="branch-header-row">
             <span class="branch-label">Branch</span>
             <button
-              class="branch-add-btn"
+              class="ic-btn branch-add-btn"
               type="button"
               aria-label="브랜치 추가"
               title="브랜치 추가"
             >
-              +
+              <span class="svg-icon i-plus"></span>
             </button>
           </div>
           <div class="link-stack branch-stack"></div>
@@ -467,7 +460,7 @@
                 placeholder="feature/branch-name"
               />
               <button
-                class="branch-save-btn row-btn"
+                class="ic-btn primary branch-save-btn"
                 type="button"
                 aria-label="저장"
               >
@@ -482,7 +475,7 @@
           </div>
           <div class="memo-edit-actions">
             <button
-              class="memo-link-toggle"
+              class="ic-btn memo-link-toggle"
               type="button"
               aria-label="메모 편집"
             >
@@ -510,7 +503,7 @@
                 placeholder="https://..."
               />
               <button
-                class="link-manage-btn add-link-btn"
+                class="ic-btn primary add-link-btn"
                 type="button"
                 aria-label="추가"
               >
@@ -532,31 +525,15 @@
           <span class="linked-dot branch"></span>
           <span><strong class="branch-name"></strong></span>
           <span class="row-actions">
-            <button
-              class="row-btn copy"
-              type="button"
-              aria-label="복사"
-            ></button>
-            <button
-              class="row-btn edit"
-              type="button"
-              aria-label="수정"
-            ></button>
-            <button
-              class="row-btn danger"
-              type="button"
-              aria-label="삭제"
-            ></button>
+            <button class="ic-btn sm copy" type="button" aria-label="복사"></button>
+            <button class="ic-btn sm edit" type="button" aria-label="수정"></button>
+            <button class="ic-btn sm danger" type="button" aria-label="삭제"></button>
           </span>
         </div>
         <div class="branch-edit-line" hidden>
           <input class="branch-input branch-edit-input" type="text" />
-          <button class="row-btn save" type="button" aria-label="저장"></button>
-          <button
-            class="row-btn cancel"
-            type="button"
-            aria-label="취소"
-          ></button>
+          <button class="ic-btn sm primary save" type="button" aria-label="저장"></button>
+          <button class="ic-btn sm cancel" type="button" aria-label="취소"></button>
         </div>
       </div>
     </template>
@@ -604,16 +581,8 @@
           />
         </div>
         <div class="link-manage-actions">
-          <button
-            class="link-manage-btn save"
-            type="button"
-            aria-label="저장"
-          ></button>
-          <button
-            class="link-manage-btn danger"
-            type="button"
-            aria-label="삭제"
-          ></button>
+          <button class="ic-btn primary save" type="button" aria-label="저장"></button>
+          <button class="ic-btn danger" type="button" aria-label="삭제"></button>
         </div>
       </div>
     </template>
@@ -635,7 +604,7 @@
             aria-label="PR 열기"
           ></button>
           <div class="pr-main">
-            <div class="pr-info-row">
+            <div class="info-row">
               <span class="pr-repo"></span>
               <span class="badge pr-state"></span>
               <span class="date-label"></span>
@@ -694,16 +663,16 @@
     </template>
 
     <template id="memoViewActionsTemplate">
-      <button class="memo-link-toggle" type="button" aria-label="메모 편집">
+      <button class="ic-btn memo-link-toggle" type="button" aria-label="메모 편집">
         <span class="svg-icon i-edit"></span>
       </button>
     </template>
 
     <template id="memoEditActionsTemplate">
-      <button class="memo-save-btn row-btn" type="button" aria-label="저장">
+      <button class="ic-btn primary memo-save-btn" type="button" aria-label="저장">
         <span class="svg-icon i-check"></span>
       </button>
-      <button class="memo-cancel-btn row-btn" type="button" aria-label="취소">
+      <button class="ic-btn memo-cancel-btn" type="button" aria-label="취소">
         <span class="svg-icon i-x"></span>
       </button>
     </template>

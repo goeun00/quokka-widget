@@ -33,6 +33,15 @@
   --gray: #6f6a63;
   --gray-soft: rgba(111, 106, 99, 0.12);
   --shadow: 0 24px 70px rgba(68, 48, 28, 0.18);
+  --card-shadow: 0 10px 28px rgba(68, 48, 28, 0.08);
+  --surface-inv: #2a251f;
+  --on-inv: #fff7e8;
+  --avatar-grad-from: #ffd2c2;
+  --avatar-grad-to: #fff3df;
+  --track-bg: rgba(42, 37, 31, 0.06);
+  --linked-bg: rgba(255, 250, 240, 0.38);
+  --branch-bg: rgba(255, 255, 255, 0.45);
+  --branch-bg-hover: rgba(255, 255, 255, 0.85);
   --radius-lg: 24px;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-fast: 0.16s;
@@ -45,12 +54,12 @@
     system-ui,
     sans-serif;
   --fs-10: 10px;
-  --fs-11: 11px;
-  --fs-12: 12px;
-  --fs-13: 13px;
-  --fs-14: 14px;
-  --fs-16: 16px;
-  --fs-22: 22px;
+  --fs-11: 10px;
+  --fs-12: 11px;
+  --fs-13: 12px;
+  --fs-14: 13px;
+  --fs-16: 15px;
+  --fs-22: 20px;
 }
 
 body.dark-mode {
@@ -81,6 +90,15 @@ body.dark-mode {
   --gray: #b7aea3;
   --gray-soft: rgba(183, 174, 163, 0.14);
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+  --card-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  --surface-inv: #fff4e6;
+  --on-inv: #2a251f;
+  --avatar-grad-from: #4f3b35;
+  --avatar-grad-to: #2d2a25;
+  --track-bg: rgba(255, 244, 230, 0.08);
+  --linked-bg: rgba(255, 244, 230, 0.05);
+  --branch-bg: rgba(255, 244, 230, 0.06);
+  --branch-bg-hover: rgba(255, 244, 230, 0.13);
 }
 
 * {
@@ -226,7 +244,7 @@ button {
   width: 36px;
   height: 36px;
   border-radius: 16px;
-  background: linear-gradient(145deg, #ffd2c2, #fff3df);
+  background: linear-gradient(145deg, var(--avatar-grad-from), var(--avatar-grad-to));
   color: var(--coral);
   place-items: center;
   box-shadow: inset 0 -2px 0 rgba(42, 37, 31, 0.08);
@@ -234,9 +252,6 @@ button {
 .avatar .svg-icon {
   width: 20px;
   height: 20px;
-}
-body.dark-mode .avatar {
-  background: linear-gradient(145deg, #4f3b35, #2d2a25);
 }
 .title-area {
   flex: 1;
@@ -277,6 +292,56 @@ body.dark-mode .avatar {
   border-color: var(--line-strong);
 }
 
+/* ══════════════════════════════════════════
+   UNIFIED INLINE ACTION BUTTON
+══════════════════════════════════════════ */
+.ic-btn {
+  display: grid;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--field);
+  font-size: 0;
+  color: var(--sub);
+  place-items: center;
+  cursor: pointer;
+}
+.ic-btn .svg-icon {
+  width: 13px;
+  height: 13px;
+}
+.ic-btn:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+.ic-btn.primary {
+  background: var(--coral-soft);
+  color: var(--coral);
+  border-color: var(--coral-weak);
+}
+.ic-btn.danger {
+  background: var(--red-soft);
+  color: var(--red);
+  border-color: var(--red-soft);
+}
+.ic-btn.is-pinned {
+  background: var(--coral-soft);
+  color: var(--coral);
+  border-color: var(--coral-weak);
+}
+.ic-btn.sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+}
+.ic-btn.sm .svg-icon {
+  width: 11px;
+  height: 11px;
+}
+
 .top-tabs {
   display: grid;
   padding: 12px 14px 0;
@@ -303,15 +368,10 @@ body.dark-mode .avatar {
   border-color: var(--line-strong);
 }
 .top-tab.is-on {
-  background: #2a251f;
-  color: #fff7e8;
-  border-color: #2a251f;
+  background: var(--surface-inv);
+  color: var(--on-inv);
+  border-color: var(--surface-inv);
   box-shadow: 0 10px 20px rgba(42, 37, 31, 0.12);
-}
-body.dark-mode .top-tab.is-on {
-  background: #fff4e6;
-  color: #2a251f;
-  border-color: #fff4e6;
 }
 .tab-count {
   display: grid;
@@ -443,50 +503,15 @@ body.dark-mode .top-tab.is-on {
 .box_card,
 .pr-card {
   position: relative;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--card);
-  box-shadow: 0 10px 28px rgba(68, 48, 28, 0.08);
-}
-body.dark-mode .box_card,
-body.dark-mode .pr-card {
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  box-shadow: var(--card-shadow);
 }
 
 .pr-card .pr-top {
   padding-right: 34px;
-}
-.pr-copy-btn {
-  display: grid;
-  opacity: 0;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--panel-strong);
-  color: var(--sub);
-  transform: translateY(-2px);
-  place-items: center;
-  pointer-events: none;
-}
-.pr-copy-btn .svg-icon {
-  width: 13px;
-  height: 13px;
-}
-.pr-card:hover .pr-copy-btn,
-.pr-card:focus-within .pr-copy-btn {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-.pr-copy-btn:hover {
-  color: var(--text);
-  transform: translateY(-1px);
-  border-color: var(--line-strong);
 }
 .pr-title {
   cursor: pointer;
@@ -578,29 +603,6 @@ body.dark-mode .pr-card {
 .issue-title-link:hover {
   text-decoration: underline;
 }
-.pin {
-  font-size: 0;
-}
-.pin button {
-  color: var(--weak);
-  border: 1px solid var(--line);
-  padding: 4px;
-  border-radius: 8px;
-  display: inline-block;
-}
-.pin .svg-icon {
-  width: 11px;
-  height: 11px;
-}
-.pin button:hover {
-  color: var(--coral);
-  border-color: var(--coral-weak);
-}
-.box_card.is-pinned .pin button {
-  color: var(--coral);
-  background: var(--coral-soft);
-  border-color: var(--coral-weak);
-}
 .box_card.is-pinned {
   border-color: var(--coral-weak);
 }
@@ -664,25 +666,6 @@ body.dark-mode .pr-card {
   font-weight: 800;
   color: var(--sub);
 }
-.branch-add-btn {
-  display: grid;
-  width: 16px;
-  height: 16px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 999px;
-  background: transparent;
-  font-size: 15px;
-  color: var(--weak);
-  line-height: 1;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-  cursor: pointer;
-}
-.branch-add-btn:hover {
-  color: var(--coral);
-  border-color: var(--coral);
-}
 .box_card.has-branch .pill-branch,
 .box_card.is-branch-editing .pill-branch {
   display: none;
@@ -716,13 +699,10 @@ body.dark-mode .pr-card {
   padding: 8px 10px;
   border: 1px dashed var(--line-strong);
   border-radius: 14px;
-  background: rgba(255, 250, 240, 0.38);
+  background: var(--linked-bg);
   font-size: var(--fs-12);
   color: var(--sub);
   gap: 8px;
-}
-body.dark-mode .linked-row {
-  background: rgba(255, 244, 230, 0.05);
 }
 .row-actions {
   display: flex;
@@ -738,28 +718,6 @@ body.dark-mode .linked-row {
   opacity: 1;
   transform: translateY(-50%);
   pointer-events: auto;
-}
-.row-btn {
-  display: grid;
-  width: 26px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--panel-strong);
-  font-size: 0;
-  font-weight: 800;
-  color: var(--sub);
-  place-items: center;
-}
-.row-btn .svg-icon {
-  width: 12px;
-  height: 12px;
-}
-.row-btn.danger {
-  background: var(--red-soft);
-  color: var(--red);
-  border-color: var(--red-soft);
 }
 .linked-row strong {
   display: block;
@@ -849,31 +807,6 @@ body.dark-mode .linked-row {
 .box_card.is-memo-editing .memo-edit-actions {
   opacity: 1;
   pointer-events: auto;
-}
-.memo-link-toggle,
-.memo-save-btn,
-.memo-cancel-btn {
-  display: grid;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--field);
-  color: var(--sub);
-  place-items: center;
-}
-.memo-link-toggle:hover,
-.memo-save-btn:hover,
-.memo-cancel-btn:hover {
-  color: var(--text);
-  transform: translateY(-1px);
-  border-color: var(--line-strong);
-}
-.memo-link-toggle .svg-icon,
-.memo-save-btn .svg-icon,
-.memo-cancel-btn .svg-icon {
-  width: 12px;
-  height: 12px;
 }
 .memo-text {
   display: -webkit-box;
@@ -998,33 +931,6 @@ body.dark-mode .linked-row {
   justify-content: flex-end;
   margin: -2px 0 10px;
   gap: 6px;
-}
-.memo-action-btn {
-  display: inline-grid;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-strong);
-  font-size: 0;
-  font-weight: 850;
-  color: var(--sub);
-  place-items: center;
-}
-.memo-action-btn .svg-icon {
-  width: 13px;
-  height: 13px;
-}
-.memo-action-btn.primary {
-  background: var(--coral-soft);
-  color: var(--coral);
-  border-color: rgba(255, 131, 95, 0.28);
-}
-.memo-action-btn.danger {
-  background: var(--red-soft);
-  color: var(--red);
-  border-color: var(--red-soft);
 }
 .link-edit-head {
   font-size: var(--fs-11);
@@ -1175,28 +1081,6 @@ body.dark-mode .linked-row {
 .link-manage-actions {
   display: flex;
   gap: 5px;
-}
-.link-manage-btn {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-strong);
-  font-size: 0;
-  font-weight: 850;
-  color: var(--sub);
-  place-items: center;
-}
-.link-manage-btn .svg-icon {
-  width: 13px;
-  height: 13px;
-}
-.link-manage-btn.danger {
-  background: var(--red-soft);
-  color: var(--red);
-  border-color: var(--red-soft);
 }
 .link-new-row {
   display: grid;
@@ -1444,14 +1328,10 @@ body.dark-mode .linked-row {
   margin-top: 14px;
   border: 1px solid var(--line);
   border-radius: 13px;
-  background: #2a251f;
+  background: var(--surface-inv);
   font-size: var(--fs-12);
   font-weight: 850;
-  color: #fff7e8;
-}
-body.dark-mode .save-btn {
-  background: #fff4e6;
-  color: #2a251f;
+  color: var(--on-inv);
 }
 
 .character {
@@ -1459,18 +1339,14 @@ body.dark-mode .save-btn {
   width: 82px;
   height: 62px;
   border-radius: 24px 24px 18px 18px;
-  background: #2a251f;
-  color: #fff7e8;
+  background: var(--surface-inv);
+  color: var(--on-inv);
   place-items: center;
   box-shadow: 0 12px 30px rgba(42, 37, 31, 0.22);
 }
 .character .svg-icon {
   width: 28px;
   height: 28px;
-}
-body.dark-mode .character {
-  background: #fff4e6;
-  color: #2a251f;
 }
 .speech {
   opacity: 0;
@@ -1819,37 +1695,12 @@ body.dark-mode .character {
   outline: none;
   box-shadow: 0 0 0 3px var(--coral-soft);
 }
-.logwork-save-btn,
-.logwork-cancel-btn {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 800;
-  place-items: center;
-  cursor: pointer;
-}
-.logwork-save-btn {
-  background: var(--coral);
-  color: #fff;
-  box-shadow: 0 4px 12px var(--coral-soft);
-}
-.logwork-cancel-btn {
-  border: 1px solid var(--line);
-  background: var(--field);
-  color: var(--sub);
-}
 
 .logwork-track {
   overflow: hidden;
   height: 8px;
   border-radius: 999px;
-  background: rgba(42, 37, 31, 0.06);
-}
-body.dark-mode .logwork-track {
-  background: rgba(255, 244, 230, 0.08);
+  background: var(--track-bg);
 }
 .logwork-fill {
   height: 100%;
@@ -1958,10 +1809,6 @@ body.dark-mode .logwork-track {
   height: 30px;
 }
 
-.branch-edit-line .row-btn {
-  width: 28px;
-  height: 28px;
-}
 
 .link-icon-select {
   display: inline-grid;
@@ -2084,7 +1931,6 @@ mark {
 
 /* OPEN 카드: 초록 톤 */
 .pr-card.tone-open {
-  background: var(--green-soft);
   border-color: var(--green-weak);
 }
 
@@ -2122,7 +1968,7 @@ mark {
 }
 
 /* 정보 행: repo · badge · date */
-.pr-info-row {
+.info-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2168,10 +2014,10 @@ mark {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 8px;
   background: var(--panel-strong);
   color: var(--sub);
   transform: translateY(-2px);
@@ -2179,8 +2025,13 @@ mark {
   pointer-events: none;
 }
 .pr-copy-btn .svg-icon {
-  width: 13px;
-  height: 13px;
+  width: 11px;
+  height: 11px;
+}
+.pr-card:hover .pr-copy-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 .pr-copy-btn:hover {
   color: var(--text);
@@ -2250,7 +2101,7 @@ mark {
   padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 13px;
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--branch-bg);
   font-size: var(--fs-11);
   font-weight: 600;
   color: var(--sub);
@@ -2262,16 +2113,10 @@ mark {
   gap: 8px;
   cursor: pointer;
 }
-body.dark-mode .pr-branch-row {
-  background: rgba(255, 244, 230, 0.06);
-}
 .pr-branch-row:hover {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--branch-bg-hover);
   color: var(--text);
   border-color: var(--line-strong);
-}
-body.dark-mode .pr-branch-row:hover {
-  background: rgba(255, 244, 230, 0.13);
 }
 .pr-branch-text {
   display: flex;

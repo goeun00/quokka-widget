@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, screen, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, screen, shell, dialog } = require("electron");
+const XLSX = require("xlsx");
 const path = require("path");
 const fs = require("fs");
 const { fetchMyIssues, fetchIssuesByKeys, fetchMyWorklogs } = require("./jira");
@@ -151,4 +152,21 @@ ipcMain.handle("gh:getHistory", () => store.get("ghHistory") || []);
 ipcMain.handle("gh:saveHistory", (_, items) => {
   store.set("ghHistory", items);
   return true;
+});
+
+ipcMain.handle("export-work-report", async (_event, rows = []) => {
+  const { canceled, filePath } = await dialog.showSaveDialog({
+    title: "업무보고 저장",
+    defaultPath: `업무보고_${new Date().toISOString().slice(0, 7)}.xlsx`,
+    filters: [{ name: "Excel", extensions: ["xlsx"] }],
+  });
+
+  if (canceled || !filePath) return { canceled: true };
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "업무보고");
+  XLSX.writeFile(workbook, filePath);
+
+  return { canceled: false, filePath };
 });
