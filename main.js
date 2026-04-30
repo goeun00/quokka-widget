@@ -1,6 +1,14 @@
-const { app, BrowserWindow, ipcMain, screen, shell, dialog } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  screen,
+  shell,
+  dialog,
+} = require("electron");
 const XLSX = require("xlsx");
 const path = require("path");
+const os = require("os");
 const fs = require("fs");
 const { fetchMyIssues, fetchIssuesByKeys, fetchMyWorklogs } = require("./jira");
 const { fetchMyPRs } = require("./github");
@@ -155,18 +163,19 @@ ipcMain.handle("gh:saveHistory", (_, items) => {
 });
 
 ipcMain.handle("export-work-report", async (_event, rows = []) => {
-  const { canceled, filePath } = await dialog.showSaveDialog({
-    title: "업무보고 저장",
-    defaultPath: `업무보고_${new Date().toISOString().slice(0, 7)}.xlsx`,
-    filters: [{ name: "Excel", extensions: ["xlsx"] }],
-  });
-
-  if (canceled || !filePath) return { canceled: true };
-
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "업무보고");
+
+  const filePath = path.join(
+    os.tmpdir(),
+    `업무보고_${new Date().toISOString().slice(0, 10)}_${Date.now()}.xlsx`,
+  );
+
   XLSX.writeFile(workbook, filePath);
+
+  const errorMessage = await shell.openPath(filePath);
+  if (errorMessage) throw new Error(errorMessage);
 
   return { canceled: false, filePath };
 });
