@@ -22,6 +22,75 @@ function getJiraHeaders(baseUrl, token, email = "") {
     "Content-Type": "application/json",
   };
 }
+
+const REPORT_FIELD_NAMES = {
+  targetStart: "Target start",
+  targetEnd: "Target end",
+  expectedDeliveryDate: "Expected Delivery Date",
+};
+
+let cachedReportFieldIds = null;
+
+async function getReportFieldIds(jiraBase, headers) {
+  if (cachedReportFieldIds) return cachedReportFieldIds;
+
+  const fieldIds = {
+    targetStart: "",
+    targetEnd: "",
+    expectedDeliveryDate: "",
+  };
+
+  try {
+    const res = await fetch(`${jiraBase}/rest/api/2/field`, { headers });
+    if (!res.ok) return fieldIds;
+
+    const fields = await res.json();
+    const nameMap = new Map(
+      (fields || []).map((field) => [
+        String(field.name || "").trim().toLowerCase(),
+        field.id,
+      ]),
+    );
+
+    Object.entries(REPORT_FIELD_NAMES).forEach(([key, name]) => {
+      fieldIds[key] = nameMap.get(name.toLowerCase()) || "";
+    });
+  } catch {}
+
+  cachedReportFieldIds = fieldIds;
+  return fieldIds;
+}
+
+function getReportFields(fieldIds = {}) {
+  return [
+    fieldIds.targetStart,
+    fieldIds.targetEnd,
+    fieldIds.expectedDeliveryDate,
+  ]
+    .filter(Boolean)
+    .join(",");
+}
+
+function pickReportDate(fields, fieldId) {
+  const value = fieldId ? fields?.[fieldId] : "";
+
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (value?.value) return value.value;
+  if (value?.startDate) return value.startDate;
+  if (value?.date) return value.date;
+
+  return "";
+}
+
+function mapReportDates(fields = {}, fieldIds = {}) {
+  return {
+    targetStart: pickReportDate(fields, fieldIds.targetStart),
+    targetEnd: pickReportDate(fields, fieldIds.targetEnd),
+    expectedDeliveryDate: pickReportDate(fields, fieldIds.expectedDeliveryDate),
+  };
+}
+
 function getMonthRange(monthOffset = 0) {
   const base = new Date();
   base.setDate(1);
@@ -57,7 +126,7 @@ function getSearchUrl(baseUrl, jql, fields, maxResults = 100) {
   return `${jiraBase}${endpoint}?jql=${encodeURIComponent(jql)}&fields=${encodeURIComponent(fields)}&maxResults=${maxResults}`;
 }
 
-function mapIssue(baseUrl, issue) {
+function mapIssue(baseUrl, issue, fieldIds = {}) {
   const jiraBase = normalizeJiraBase(baseUrl);
 
   return {
@@ -70,6 +139,7 @@ function mapIssue(baseUrl, issue) {
     reporter: issue.fields?.reporter?.displayName || "",
     assignee: issue.fields?.assignee?.displayName || "",
     url: `${jiraBase}/browse/${issue.key}`,
+    ...mapReportDates(issue.fields, fieldIds),
   };
 }
 
@@ -98,7 +168,11 @@ async function fetchMyIssues(baseUrl, pat, doneDays = 60, email = "") {
   } catch {}
 
   const jql = `(assignee=currentUser() OR watcher=currentUser()) AND (statusCategory!=Done OR (statusCategory=Done AND updated>=-${doneDays}d)) ORDER BY updated DESC`;
-  const fields = "summary,status,updated,issuetype,reporter,assignee";
+  const reportFieldIds = await getReportFieldIds(jiraBase, headers);
+  const reportFields = getReportFields(reportFieldIds);
+  const fields = ["summary,status,updated,issuetype,reporter,assignee", reportFields]
+    .filter(Boolean)
+    .join(",");
   const url = getSearchUrl(jiraBase, jql, fields, 100);
   const res = await fetch(url, { headers });
 
@@ -112,7 +186,7 @@ async function fetchMyIssues(baseUrl, pat, doneDays = 60, email = "") {
   return {
     login,
     initials,
-    issues: (data.issues || []).map((issue) => mapIssue(jiraBase, issue)),
+    issues: (data.issues || []).map((issue) => mapIssue(jiraBase, issue, reportFieldIds)),
   };
 }
 
@@ -136,7 +210,9 @@ async function fetchMyWorklogs(baseUrl, pat, monthOffset = 0, email = "") {
   const startedBefore = end.getTime();
 
   const jql = `worklogAuthor = currentUser() AND worklogDate >= "${formatJiraDate(start)}" AND worklogDate < "${formatJiraDate(end)}"`;
-  const fields = "summary";
+  const reportFieldIds = await getReportFieldIds(jiraBase, headers);
+  const reportFields = getReportFields(reportFieldIds);
+  const fields = ["summary", reportFields].filter(Boolean).join(",");
   const searchUrl = getSearchUrl(jiraBase, jql, fields, 100);
 
   const issueRes = await fetch(searchUrl, { headers });
@@ -180,6 +256,7 @@ async function fetchMyWorklogs(baseUrl, pat, monthOffset = 0, email = "") {
         started: log.started,
         timeSpent: log.timeSpent,
         timeSpentSeconds: overlapSeconds,
+        ...mapReportDates(issue.fields, reportFieldIds),
       });
     }
   }
@@ -200,7 +277,11 @@ async function fetchIssuesByKeys(baseUrl, pat, keys, email = "") {
     return { issues: [] };
   }
   const jql = `key in (${keys.join(",")}) ORDER BY updated DESC`;
-  const fields = "summary,status,updated,issuetype,reporter,assignee";
+  const reportFieldIds = await getReportFieldIds(jiraBase, headers);
+  const reportFields = getReportFields(reportFieldIds);
+  const fields = ["summary,status,updated,issuetype,reporter,assignee", reportFields]
+    .filter(Boolean)
+    .join(",");
   const url = getSearchUrl(jiraBase, jql, fields, 50);
   const res = await fetch(url, { headers });
 
@@ -212,7 +293,7 @@ async function fetchIssuesByKeys(baseUrl, pat, keys, email = "") {
   const data = await res.json();
 
   return {
-    issues: (data.issues || []).map((issue) => mapIssue(jiraBase, issue)),
+    issues: (data.issues || []).map((issue) => mapIssue(jiraBase, issue, reportFieldIds)),
   };
 }
 

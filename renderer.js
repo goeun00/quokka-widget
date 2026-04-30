@@ -371,7 +371,7 @@ function bindChrome() {
   $("#closePanelBtn").addEventListener("click", () => setPanel(false));
   $("#refreshBtn").addEventListener("click", async () => {
     if (state.view === "home") {
-      await fetchLogwork();
+      await Promise.all([fetchIssues({ silent: true }), fetchLogwork()]);
       renderHome();
     } else if (state.view === "pr") {
       await fetchPRs();
@@ -619,6 +619,12 @@ function renderLogworkList(logs = []) {
 function renderLogwork() {
   const offset = state.logworkOffset;
   const { logged, target, logs = [] } = getLogworkData(offset);
+  const reportTotal = buildWorkReportRows().reduce(
+    (sum, row) => sum + Number(row["소요시간(D)"] || 0),
+    0,
+  );
+  const displayLogged = reportTotal || logged;
+
   $("#logworkTargetForm").hidden = true;
   const d = getLogworkMonth(offset);
   const months = [
@@ -640,11 +646,11 @@ function renderLogwork() {
     `${d.getFullYear()}년 ${months[d.getMonth()]}`;
 
   const pct =
-    target > 0 ? Math.min(100, Math.round((logged / target) * 100)) : 0;
+    target > 0 ? Math.min(100, Math.round((displayLogged / target) * 100)) : 0;
 
-  const remaining = Math.max(0, target - logged);
+  const remaining = Math.max(0, target - displayLogged);
 
-  $("#logworkLoggedVal").textContent = formatDecimal(logged);
+  $("#logworkLoggedVal").textContent = formatDecimal(displayLogged);
   $("#logworkTargetVal").textContent = target;
 
   const fill = $("#logworkFill");
@@ -719,15 +725,6 @@ function renderHomePR() {
     list.appendChild(item);
   });
 }
-function formatReportDate(value) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  const yy = String(d.getFullYear()).slice(2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yy} ${mm} ${dd}`;
-}
 
 function parseTimeSpentToSeconds(text = "") {
   const value = String(text);
@@ -749,32 +746,42 @@ function buildWorkReportRows() {
   logs.forEach((log) => {
     const key = log.issueKey;
     if (!key) return;
-    if (!group.has(key)) group.set(key, { issueKey: key, logs: [], seconds: 0 });
+    if (!group.has(key))
+      group.set(key, { issueKey: key, logs: [], seconds: 0 });
     const item = group.get(key);
     item.logs.push(log);
-    item.seconds += log.timeSpentSeconds || parseTimeSpentToSeconds(log.timeSpent);
+    item.seconds +=
+      log.timeSpentSeconds || parseTimeSpentToSeconds(log.timeSpent);
   });
 
-  return [...group.values()].map(({ issueKey, logs, seconds }) => {
-    const issue = issueMap.get(issueKey) || {};
-    const sorted = logs.slice().sort((a, b) => new Date(a.started) - new Date(b.started));
-    return {
-      "JIRA 번호": issueKey,
-      "업무내용": issue.summary || sorted[0]?.summary || "",
-      "업무분류": "",
-      "Type": issue.issueType || "",
-      "요청구분": "JIRA",
-      "요청자": issue.reporter || "",
-      "담당자": issue.assignee || "",
-      "업무 시작일": formatReportDate(sorted[0]?.started),
-      "업무 종료일": formatReportDate(sorted[sorted.length - 1]?.started),
-      "Mark up Delivery": formatReportDate(sorted[sorted.length - 1]?.started),
-      "소요시간(D)": Number((seconds / 28800).toFixed(2)),
-      "Phase": issue.status || "",
-      "LTS": "",
-      "비고": issue.url || `${state.jira.baseUrl}/browse/${issueKey}`,
-    };
-  });
+  return [...group.values()]
+    .sort((a, b) => {
+      const aLast = new Date(a.logs[a.logs.length - 1]?.started || 0).getTime();
+      const bLast = new Date(b.logs[b.logs.length - 1]?.started || 0).getTime();
+      return aLast - bLast;
+    })
+    .map(({ issueKey, logs, seconds }) => {
+      const issue = issueMap.get(issueKey) || {};
+      const sorted = logs
+        .slice()
+        .sort((a, b) => new Date(a.started) - new Date(b.started));
+      return {
+        "JIRA 번호": issueKey,
+        업무내용: issue.summary || sorted[0]?.summary || "",
+        업무분류: "",
+        Type: /^(GPP|BCI)-/i.test(issueKey) ? "BC" : "DR",
+        요청구분: "JIRA",
+        요청자: (issue.reporter || "").replace(/\s*\([^)]*\)\s*$/, "").trim(),
+        담당자: (issue.assignee || "").replace(/\s*\([^)]*\)\s*$/, "").trim(),
+        "업무 시작일": issue.targetStart || "",
+        "업무 종료일": issue.targetEnd || "",
+        "Mark up Delivery": issue.expectedDeliveryDate || "",
+        "소요시간(D)": Number((seconds / 28800).toFixed(2)),
+        Phase: issue.statusCategory || "",
+        LTS: "",
+        비고: issue.url,
+      };
+    });
 }
 
 function renderHome() {
