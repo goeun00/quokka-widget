@@ -95,7 +95,7 @@ function esc(s = "") {
 }
 let speechTimer = null;
 
-function showSpeech(msg, delay = 2200) {
+function showSpeech(msg, delay = 3200) {
   const speech = $("#speech");
   if (!speech) return;
 
@@ -116,6 +116,16 @@ function setPanel(open, view = state.view) {
 function setView(view) {
   state.view = view;
   $("#topTabs").classList.toggle("is-settings", view === "settings");
+  const isSettings = view === "settings";
+
+  $("#refreshBtn").hidden = isSettings;
+
+  const settingsBtn = $("#settingsBtn");
+  settingsBtn.setAttribute("aria-label", isSettings ? "done" : "settings");
+  settingsBtn.innerHTML = isSettings
+    ? '<span class="svg-icon i-back"></span>'
+    : '<span class="svg-icon i-settings"></span>';
+
   $$(".top-tab").forEach((tab) =>
     tab.classList.toggle("is-on", tab.dataset.view === view),
   );
@@ -160,6 +170,7 @@ function fmtDate(d) {
   if (diff < 30) return `${Math.floor(diff / 7)}주 전`;
   return `${Math.floor(diff / 30)}달 전`;
 }
+
 function formatDecimal(num) {
   return Number(num || 0)
     .toFixed(3)
@@ -396,6 +407,7 @@ function bindChrome() {
   $("#avatarBtn").addEventListener("click", toggleTheme);
   $("#ctxTheme").addEventListener("click", toggleTheme);
   $("#ctxQuit").addEventListener("click", () => window.api?.quit?.());
+
   $("#dock").addEventListener("contextmenu", (e) => {
     e.preventDefault();
     const menu = $("#ctxMenu");
@@ -410,29 +422,6 @@ function bindChrome() {
       $("#ctxMenu").classList.remove("show");
   });
 
-  let dragging = false,
-    ox = 0,
-    oy = 0,
-    raf = null,
-    pending = null;
-  $("#dockHandle").addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    dragging = true;
-    ox = e.screenX - window.screenX;
-    oy = e.screenY - window.screenY;
-  });
-  window.addEventListener("mouseup", () => {
-    dragging = false;
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!dragging) return;
-    pending = { x: e.screenX - ox, y: e.screenY - oy };
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      window.api?.moveWindow?.(pending);
-      raf = null;
-    });
-  });
   document.addEventListener("mousemove", (e) => {
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const interactive =
@@ -446,7 +435,6 @@ function bindChrome() {
 
   $("#jiraSearch").addEventListener("input", renderIssues);
   $("#prSearch").addEventListener("input", renderPRs);
-  $("#addRepoBtn").addEventListener("click", addRepoFromForm);
   $("#saveSettingsBtn").addEventListener("click", saveSettingsFromForm);
   $("#usePersonalJira")?.addEventListener("change", () => {
     $("#jiraEmailWrap").hidden = !$("#usePersonalJira").checked;
@@ -573,7 +561,7 @@ function bindHome() {
       return;
     }
     const result = await window.api?.exportWorkReport?.(rows);
-    if (!result?.canceled) showSpeech("업무보고 엑셀 저장 완료! 📊");
+    if (!result?.canceled) showSpeech("업무보고 엑셀로 내보낼게요! 📊");
   });
 }
 
@@ -761,10 +749,11 @@ function buildWorkReportRows() {
       return aLast - bLast;
     })
     .map(({ issueKey, logs, seconds }) => {
-      const issue = issueMap.get(issueKey) || {};
       const sorted = logs
         .slice()
         .sort((a, b) => new Date(a.started) - new Date(b.started));
+      const fallbackLog = sorted[0] || {};
+      const issue = issueMap.get(issueKey) || fallbackLog;
       return {
         "JIRA 번호": issueKey,
         업무내용: issue.summary || sorted[0]?.summary || "",
@@ -776,7 +765,7 @@ function buildWorkReportRows() {
         "업무 시작일": issue.targetStart || "",
         "업무 종료일": issue.targetEnd || "",
         "Mark up Delivery": issue.expectedDeliveryDate || "",
-        "소요시간(D)": Number((seconds / 28800).toFixed(2)),
+        "소요시간(D)": formatDecimal(seconds / 28800),
         Phase: issue.statusCategory || "",
         LTS: "",
         비고: issue.url,
@@ -948,7 +937,6 @@ function renderAll() {
   renderIssues();
   renderPRs();
   renderHome();
-  renderRepoList();
 }
 function updateCounts() {
   const counts = { todo: 0, wip: 0, done: 0 };
@@ -1000,7 +988,7 @@ function createIssueCard(issue) {
   const query = $("#jiraSearch")?.value.trim() || "";
   const card = cloneTemplate("issueCardTemplate");
   const isPinned = state.pins.has(key);
-  if (isPinned) card.classList.add("is-pinned");
+  if (isPinned) card.classList.add("is-primary");
 
   const typeButton = $(".type-icon", card);
   typeButton.classList.add(type.cls);
@@ -1010,7 +998,7 @@ function createIssueCard(issue) {
   $(".issue-title", card).innerHTML = hl(issue.summary, query);
   const pinBtn = $(".pin button", card);
   pinBtn.innerHTML = isPinned ? ICONS.pin : ICONS.pin.replace("fill", "");
-  if (isPinned) pinBtn.classList.add("is-pinned");
+  if (isPinned) pinBtn.classList.add("is-primary");
 
   const status = $(".issue-status", card);
   status.classList.add(badgeClass(cat));
@@ -1464,118 +1452,8 @@ function loadSettingsIntoForm() {
   $("#userName").value = state.userName || "goeun";
   state.reposDraft = [...(state.gh.repos || [])];
   state.repoEditingIndex = null;
-  renderRepoList();
 }
-function renderRepoList() {
-  const list = $("#repoList");
-  const addBtn = $("#addRepoBtn");
-  list.replaceChildren();
-  if (addBtn) {
-    addBtn.innerHTML =
-      state.repoEditingIndex === null
-        ? ICONS.check.replace("i-check", "i-plus")
-        : ICONS.check;
-    addBtn.setAttribute(
-      "aria-label",
-      state.repoEditingIndex === null ? "추가" : "수정 저장",
-    );
-  }
 
-  if (!state.reposDraft.length) {
-    renderEmptyState(list, "등록된 레포가 없어요");
-    return;
-  }
-
-  state.reposDraft.forEach((repo, idx) => {
-    const item = cloneTemplate("repoItemTemplate");
-    const branches = Array.isArray(repo.branches)
-      ? repo.branches
-      : repo.base
-        ? [repo.base]
-        : [];
-
-    item.classList.toggle("is-editing", state.repoEditingIndex === idx);
-    $(".repo-name", item).textContent = `${repo.owner}/${repo.repo}`;
-    const repoMeta = $(".repo-meta", item);
-    repoMeta.replaceChildren();
-    branches.forEach((branch) => {
-      const tag = cloneTemplate("repoTagTemplate");
-      tag.textContent = branch;
-      repoMeta.appendChild(tag);
-    });
-    $(".edit-repo", item).innerHTML =
-      state.repoEditingIndex === idx ? ICONS.check : ICONS.edit;
-    $(".delete-repo", item).innerHTML = ICONS.del;
-
-    $(".edit-repo", item).addEventListener("click", () => {
-      $(".repo-edit-full", item).value = `${repo.owner}/${repo.repo}`;
-      $(".repo-edit-branches", item).value = branches.join(",");
-      item.classList.add("is-editing");
-      $(".repo-edit-full", item).focus();
-    });
-    $(".cancel-repo", item).addEventListener("click", () => {
-      item.classList.remove("is-editing");
-    });
-    $(".save-repo", item).addEventListener("click", () => {
-      const full = $(".repo-edit-full", item).value.trim();
-      if (!full.includes("/")) {
-        showSpeech("레포는 owner/repo 형식으로 넣어줘요");
-        return;
-      }
-      const [owner, repoName] = full.split("/");
-      const nextBranches = $(".repo-edit-branches", item)
-        .value.split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-      state.reposDraft[idx] = {
-        owner: owner.trim(),
-        repo: repoName.trim(),
-        branches: nextBranches,
-      };
-      renderRepoList();
-    });
-
-    $(".delete-repo", item).addEventListener("click", () => {
-      state.reposDraft.splice(idx, 1);
-      if (state.repoEditingIndex === idx) {
-        state.repoEditingIndex = null;
-        $("#repoFullName").value = "";
-        $("#repoBranches").value = "";
-      } else if (
-        state.repoEditingIndex !== null &&
-        state.repoEditingIndex > idx
-      ) {
-        state.repoEditingIndex -= 1;
-      }
-      renderRepoList();
-    });
-    list.appendChild(item);
-  });
-}
-function addRepoFromForm() {
-  const full = $("#repoFullName").value.trim();
-  if (!full.includes("/"))
-    return showSpeech("레포는 owner/repo 형식으로 넣어줘요");
-  const [owner, repo] = full.split("/").map((v) => v.trim());
-  if (!owner || !repo) return showSpeech("레포는 owner/repo 형식으로 넣어줘요");
-  const branches = $("#repoBranches")
-    .value.split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-
-  const nextRepo = { owner, repo, branches };
-  if (state.repoEditingIndex !== null) {
-    state.reposDraft[state.repoEditingIndex] = nextRepo;
-    state.repoEditingIndex = null;
-    showSpeech("레포 설정을 수정했어요");
-  } else {
-    state.reposDraft.push(nextRepo);
-    showSpeech("레포를 추가했어요");
-  }
-  $("#repoFullName").value = "";
-  $("#repoBranches").value = "";
-  renderRepoList();
-}
 async function saveSettingsFromForm() {
   const jira = {
     baseUrl: $("#jiraUrl").value.trim(),

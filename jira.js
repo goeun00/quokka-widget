@@ -47,7 +47,9 @@ async function getReportFieldIds(jiraBase, headers) {
     const fields = await res.json();
     const nameMap = new Map(
       (fields || []).map((field) => [
-        String(field.name || "").trim().toLowerCase(),
+        String(field.name || "")
+          .trim()
+          .toLowerCase(),
         field.id,
       ]),
     );
@@ -133,8 +135,8 @@ function mapIssue(baseUrl, issue, fieldIds = {}) {
     key: issue.key,
     summary: issue.fields?.summary || "",
     status: issue.fields?.status?.name || "",
-    statusCategory: issue.fields.status.statusCategory?.key || "new",
-    issueType: issue.fields.issuetype?.name || "Task",
+    statusCategory: issue.fields?.status?.statusCategory?.key || "new",
+    issueType: issue.fields?.issuetype?.name || "Task",
     updated: issue.fields?.updated || "",
     reporter: issue.fields?.reporter?.displayName || "",
     assignee: issue.fields?.assignee?.displayName || "",
@@ -170,23 +172,40 @@ async function fetchMyIssues(baseUrl, pat, doneDays = 60, email = "") {
   const jql = `(assignee=currentUser() OR watcher=currentUser()) AND (statusCategory!=Done OR (statusCategory=Done AND updated>=-${doneDays}d)) ORDER BY updated DESC`;
   const reportFieldIds = await getReportFieldIds(jiraBase, headers);
   const reportFields = getReportFields(reportFieldIds);
-  const fields = ["summary,status,updated,issuetype,reporter,assignee", reportFields]
+  const fields = [
+    "summary,status,updated,issuetype,reporter,assignee",
+    reportFields,
+  ]
     .filter(Boolean)
     .join(",");
-  const url = getSearchUrl(jiraBase, jql, fields, 100);
-  const res = await fetch(url, { headers });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Jira API error ${res.status}: ${text}`);
+  const issues = [];
+  let startAt = 0;
+  const maxResults = 100;
+
+  while (true) {
+    const url = `${getSearchUrl(jiraBase, jql, fields, maxResults)}&startAt=${startAt}`;
+    const res = await fetch(url, { headers });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Jira API error ${res.status}: ${text}`);
+    }
+
+    const data = await res.json();
+    const pageIssues = data.issues || [];
+
+    issues.push(...pageIssues);
+
+    startAt += pageIssues.length;
+
+    if (!pageIssues.length || startAt >= data.total) break;
   }
-
-  const data = await res.json();
 
   return {
     login,
     initials,
-    issues: (data.issues || []).map((issue) => mapIssue(jiraBase, issue, reportFieldIds)),
+    issues: issues.map((issue) => mapIssue(jiraBase, issue, reportFieldIds)),
   };
 }
 
@@ -212,7 +231,12 @@ async function fetchMyWorklogs(baseUrl, pat, monthOffset = 0, email = "") {
   const jql = `worklogAuthor = currentUser() AND worklogDate >= "${formatJiraDate(start)}" AND worklogDate < "${formatJiraDate(end)}"`;
   const reportFieldIds = await getReportFieldIds(jiraBase, headers);
   const reportFields = getReportFields(reportFieldIds);
-  const fields = ["summary", reportFields].filter(Boolean).join(",");
+  const fields = [
+    "summary,status,updated,issuetype,reporter,assignee",
+    reportFields,
+  ]
+    .filter(Boolean)
+    .join(",");
   const searchUrl = getSearchUrl(jiraBase, jql, fields, 100);
 
   const issueRes = await fetch(searchUrl, { headers });
@@ -239,12 +263,7 @@ async function fetchMyWorklogs(baseUrl, pat, monthOffset = 0, email = "") {
         log.author?.accountId || log.author?.name || log.author?.key;
       const meId = me.accountId || me.name || me.key;
       if (authorId !== meId) continue;
-      const overlapSeconds = getOverlapSeconds(
-        log.started,
-        log.timeSpentSeconds || 0,
-        start,
-        end,
-      );
+      const overlapSeconds = log.timeSpentSeconds || 0;
 
       if (overlapSeconds <= 0) continue;
 
@@ -253,6 +272,9 @@ async function fetchMyWorklogs(baseUrl, pat, monthOffset = 0, email = "") {
       logs.push({
         issueKey: issue.key,
         summary: issue.fields?.summary || "",
+        reporter: issue.fields?.reporter?.displayName || "",
+        assignee: issue.fields?.assignee?.displayName || "",
+        url: `${jiraBase}/browse/${issue.key}`,
         started: log.started,
         timeSpent: log.timeSpent,
         timeSpentSeconds: overlapSeconds,
@@ -279,7 +301,10 @@ async function fetchIssuesByKeys(baseUrl, pat, keys, email = "") {
   const jql = `key in (${keys.join(",")}) ORDER BY updated DESC`;
   const reportFieldIds = await getReportFieldIds(jiraBase, headers);
   const reportFields = getReportFields(reportFieldIds);
-  const fields = ["summary,status,updated,issuetype,reporter,assignee", reportFields]
+  const fields = [
+    "summary,status,updated,issuetype,reporter,assignee",
+    reportFields,
+  ]
     .filter(Boolean)
     .join(",");
   const url = getSearchUrl(jiraBase, jql, fields, 50);
@@ -293,7 +318,9 @@ async function fetchIssuesByKeys(baseUrl, pat, keys, email = "") {
   const data = await res.json();
 
   return {
-    issues: (data.issues || []).map((issue) => mapIssue(jiraBase, issue, reportFieldIds)),
+    issues: (data.issues || []).map((issue) =>
+      mapIssue(jiraBase, issue, reportFieldIds),
+    ),
   };
 }
 

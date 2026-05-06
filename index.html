@@ -34,7 +34,7 @@
             </div>
             <div class="title-area">
               <div class="eyebrow">Jira + Git</div>
-              <div class="title" id="dynamicTitle">@goeun · Jira</div>
+              <div class="title" id="dynamicTitle">@name · Jira</div>
             </div>
             <div class="actions">
               <button
@@ -143,7 +143,7 @@
               <div class="box_card">
                 <div class="section-head">
                   <span class="home-section-label">Logged Issues</span>
-                  <button class="mini-btn" id="exportReportBtn" type="button">엑셀</button>
+                  <button class="ic-btn" id="exportReportBtn" type="button"><span class="svg-icon i-excel"></span></button>
                 </div>
                 <div class="home-mini-list" id="logworkList"></div>
               </div>
@@ -251,7 +251,7 @@
               <article class="setting-card">
                 <div class="setting-title">Settings</div>
                 <div class="setting-desc">
-                  실제 Jira / GitHub 설정과 저장소 데이터를 그대로 연결해요.
+                  실제 Jira / GitHub 설정과 저장소 데이터를 연결해요.
                 </div>
                 <section class="setting-section">
                   <div class="setting-section-head">
@@ -287,7 +287,7 @@
                         Issue Sync
                       </div>
                     </div>
-                    <span class="repo-tag base">required</span>
+                    <span class="badge primary">required</span>
                   </div>
                   <div class="form-row">
                     <label for="jiraUrl">Jira URL</label
@@ -340,7 +340,7 @@
                         PR Sync
                       </div>
                     </div>
-                    <span class="repo-tag base">auto PR</span>
+                    <span class="badge primary">auto PR</span>
                   </div>
                   <div class="form-row">
                     <label for="githubUrl">GitHub URL</label
@@ -359,40 +359,6 @@
                       type="password"
                       placeholder="PAT 입력"
                     />
-                  </div>
-                  <div class="repo-box">
-                    <div class="setting-title" style="font-size: 13px">
-                      Repositories
-                    </div>
-                    <div class="setting-desc">
-                      레포와 base 브랜치를 한 줄로 추가해요. Base는 여러 개면
-                      쉼표로 입력해요.
-                    </div>
-                    <div class="repo-row">
-                      <input
-                        class="field-input"
-                        id="repoFullName"
-                        type="text"
-                        placeholder="org-publisher/starro"
-                        aria-label="레포지토리 입력"
-                      />
-                      <input
-                        class="field-input"
-                        id="repoBranches"
-                        type="text"
-                        placeholder="dev,main,stg"
-                        aria-label="base 브랜치 입력"
-                      />
-                      <button
-                        class="mini-btn"
-                        id="addRepoBtn"
-                        type="button"
-                        aria-label="추가"
-                      >
-                        <span class="svg-icon i-plus"></span>
-                      </button>
-                    </div>
-                    <div class="repo-list" id="repoList"></div>
                   </div>
                 </section>
                 <button class="save-btn" id="saveSettingsBtn" type="button">
@@ -677,61 +643,11 @@
       </button>
     </template>
 
-    <template id="repoTagTemplate">
-      <span class="repo-tag base"></span>
-    </template>
 
     <template id="linkPickerButtonTemplate">
       <button class="link-ico" type="button"></button>
     </template>
 
-    <template id="repoItemTemplate">
-      <div class="repo-item">
-        <div class="repo-view">
-          <div>
-            <strong class="repo-name"></strong>
-            <div class="repo-meta"></div>
-          </div>
-          <div class="repo-actions">
-            <button
-              class="mini-btn edit-repo"
-              type="button"
-              aria-label="수정"
-            ></button>
-            <button
-              class="mini-btn danger delete-repo"
-              type="button"
-              aria-label="삭제"
-            ></button>
-          </div>
-        </div>
-
-        <div class="repo-edit">
-          <input
-            class="field-input repo-edit-full"
-            type="text"
-            aria-label="레포지토리 수정"
-          />
-          <input
-            class="field-input repo-edit-branches"
-            type="text"
-            aria-label="base 브랜치 수정"
-          />
-          <div class="repo-actions">
-            <button class="mini-btn save-repo" type="button" aria-label="저장">
-              <span class="svg-icon i-check"></span>
-            </button>
-            <button
-              class="mini-btn cancel-repo"
-              type="button"
-              aria-label="취소"
-            >
-              <span class="svg-icon i-x"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </template>
 
     <script src="./renderer.js"></script>
   </body>
