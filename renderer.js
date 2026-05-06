@@ -989,6 +989,7 @@ function createIssueCard(issue) {
   const card = cloneTemplate("issueCardTemplate");
   const isPinned = state.pins.has(key);
   if (isPinned) card.classList.add("is-primary");
+  if (state.memos[key]) card.classList.add("has-memo");
 
   const typeButton = $(".type-icon", card);
   typeButton.classList.add(type.cls);
@@ -1069,13 +1070,16 @@ function createIssueCard(issue) {
     }
   });
   bindMemoToggle(card, key);
+  bindLinkToggle(card);
+  $(".pill-link", card).addEventListener("click", (e) => {
+    e.stopPropagation();
+    $(".link-manage-toggle", card).click();
+  });
   $(".add-link-btn", card).addEventListener("click", async () => {
     const input = $(".new-link-input", card);
     const url = input.value.trim();
     if (!url) return;
-    const iconId =
-      $(".link-new-row .link-ico-current", card)?.dataset.iconId ||
-      detectIconId(url);
+    const iconId = detectIconId(url);
     state.links[key] = [
       ...(state.links[key] || []),
       { url, label: linkLabel(url), iconId },
@@ -1089,6 +1093,14 @@ function createIssueCard(issue) {
   });
   return card;
 }
+function bindLinkToggle(card) {
+  const toggle = $(".link-manage-toggle", card);
+  if (!toggle) return;
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    card.classList.toggle("is-link-editing");
+  });
+}
 function bindMemoToggle(card, key) {
   const toggle = $(".memo-link-toggle", card);
   if (!toggle) return;
@@ -1098,9 +1110,7 @@ function bindMemoToggle(card, key) {
     const isEditing = card.classList.contains("is-memo-editing");
 
     if (!isEditing) {
-      // 편집 모드 시작
       card.classList.add("is-memo-editing");
-      $(".saved-link-add-panel", card).classList.add("is-open");
       $(".memo-inline-textarea", card).focus();
       setMemoActions(card, "edit");
 
@@ -1114,11 +1124,7 @@ function bindMemoToggle(card, key) {
           ? hl(state.memos[key], $("#jiraSearch")?.value.trim() || "")
           : "";
         card.classList.remove("is-memo-editing");
-        card.classList.toggle(
-          "has-memo",
-          !!(state.memos[key] || (state.links[key] && state.links[key].length)),
-        );
-        $(".saved-link-add-panel", card).classList.remove("is-open");
+        card.classList.toggle("has-memo", !!state.memos[key]);
         setMemoActions(card, "view");
         bindMemoToggle(card, key);
         showSpeech("메모를 저장했어요");
@@ -1129,11 +1135,7 @@ function bindMemoToggle(card, key) {
         const textarea = $(".memo-inline-textarea", card);
         textarea.value = state.memos[key] || "";
         card.classList.remove("is-memo-editing");
-        card.classList.toggle(
-          "has-memo",
-          !!(state.memos[key] || (state.links[key] && state.links[key].length)),
-        );
-        $(".saved-link-add-panel", card).classList.remove("is-open");
+        card.classList.toggle("has-memo", !!state.memos[key]);
         setMemoActions(card, "view");
         bindMemoToggle(card, key);
       });
@@ -1309,19 +1311,7 @@ function renderLinks(card, issue) {
     manage.appendChild(item);
   });
 
-  const newRow = $(".link-new-row", card);
-  if (newRow && !newRow.dataset.pickerBound) {
-    const selector = cloneTemplate("linkIconSelectTemplate");
-    const current = $(".link-ico-current", selector);
-    current.dataset.iconId = "icoLink";
-    current.innerHTML = ICONS.link;
-    fillIconPicker(selector, "icoLink");
-    $(".link-icon-placeholder", newRow).replaceWith(selector);
-    newRow.dataset.pickerBound = "true";
-    bindIconPicker(selector);
-  }
-  const hasMemo = !!(state.memos[key] || arr.length);
-  card.classList.toggle("has-memo", hasMemo);
+  card.classList.toggle("has-link", arr.length > 0);
 }
 function isPrDone(pr) {
   return pr.stateGroup === "merged" || pr.stateGroup === "closed";

@@ -762,6 +762,26 @@ button {
 .box_card.is-memo-editing .pill-memo {
   display: none;
 }
+.link-box {
+  display: none;
+  position: relative;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 15px;
+  background: rgba(127, 113, 95, 0.08);
+  gap: 7px;
+}
+.box_card.has-link .link-box,
+.box_card.is-link-editing .link-box {
+  display: grid;
+}
+.box_card.has-link .pill-link,
+.box_card.is-link-editing .pill-link {
+  display: none;
+}
+.link-box:hover {
+  background: rgba(127, 113, 95, 0.12);
+}
 .card-pills {
   display: flex;
   margin-top: 10px;
@@ -785,13 +805,14 @@ button {
   color: var(--coral);
   border-color: var(--coral);
 }
-.box_card.has-branch.has-memo .card-pills {
+.box_card.has-branch.has-memo.has-link .card-pills {
   display: none;
 }
 .memo-box:hover {
   background: rgba(127, 113, 95, 0.12);
 }
-.memo-label {
+.memo-label,
+.link-label {
   display: flex;
   align-items: center;
   padding-right: 34px;
@@ -800,7 +821,8 @@ button {
   color: var(--sub);
   gap: 6px;
 }
-.memo-edit-actions {
+.memo-edit-actions,
+.link-edit-actions {
   display: flex;
   opacity: 0;
   position: absolute;
@@ -810,7 +832,9 @@ button {
   pointer-events: none;
 }
 .memo-box:hover .memo-edit-actions,
-.box_card.is-memo-editing .memo-edit-actions {
+.box_card.is-memo-editing .memo-edit-actions,
+.link-box:hover .link-edit-actions,
+.box_card.is-link-editing .link-edit-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -834,9 +858,14 @@ button {
 .box_card.is-memo-editing .memo-inline-edit {
   display: grid;
 }
-.box_card:not(.is-memo-editing) .memo-inline-edit,
-.box_card:not(.is-memo-editing) .saved-link-add-panel {
+.box_card:not(.is-memo-editing) .memo-inline-edit {
   display: none !important;
+}
+.box_card:not(.is-link-editing) .saved-link-add-panel {
+  display: none !important;
+}
+.box_card.is-link-editing .saved-link-add-panel {
+  display: flex;
 }
 .memo-inline-textarea {
   width: 100%;
@@ -869,8 +898,25 @@ button {
 .branch-add-row {
   display: grid;
   align-items: center;
-  grid-template-columns: minmax(0, 1fr) 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
+}
+.add-text-btn {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--coral-weak);
+  border-radius: 10px;
+  background: var(--coral-soft);
+  font-size: var(--fs-12);
+  font-weight: 700;
+  color: var(--coral);
+  cursor: pointer;
+}
+.add-text-btn:hover {
+  background: var(--coral);
+  color: #fff;
+  border-color: var(--coral);
 }
 .link-add-row {
   display: flex;
@@ -1013,10 +1059,9 @@ button {
 .saved-links {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 8px;
   gap: 6px;
 }
-.box_card.is-memo-editing .saved-links {
+.box_card.is-link-editing .saved-links {
   display: none;
 }
 .saved-link {
@@ -1088,10 +1133,13 @@ button {
 .link-new-row {
   display: grid;
   align-items: center;
-  padding-top: 10px;
-  grid-template-columns: 30px minmax(0, 1fr) 30px;
-  gap: 7px;
+  padding-top: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
   border-top: 1px solid var(--line);
+}
+.link-manage-list:not(:empty) ~ .link-new-row {
+  margin-top: 4px;
 }
 @keyframes panelIn {
   from {

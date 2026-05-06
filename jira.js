@@ -180,26 +180,42 @@ async function fetchMyIssues(baseUrl, pat, doneDays = 60, email = "") {
     .join(",");
 
   const issues = [];
-  let startAt = 0;
   const maxResults = 100;
+  const isCloud = isJiraCloud(jiraBase);
+  const baseSearchUrl = getSearchUrl(jiraBase, jql, fields, maxResults);
 
-  while (true) {
-    const url = `${getSearchUrl(jiraBase, jql, fields, maxResults)}&startAt=${startAt}`;
-    const res = await fetch(url, { headers });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Jira API error ${res.status}: ${text}`);
+  if (isCloud) {
+    let nextPageToken = undefined;
+    while (true) {
+      const url = nextPageToken
+        ? `${baseSearchUrl}&nextPageToken=${encodeURIComponent(nextPageToken)}`
+        : baseSearchUrl;
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Jira API error ${res.status}: ${text}`);
+      }
+      const data = await res.json();
+      const pageIssues = data.issues || [];
+      issues.push(...pageIssues);
+      if (!pageIssues.length || !data.nextPageToken) break;
+      nextPageToken = data.nextPageToken;
     }
-
-    const data = await res.json();
-    const pageIssues = data.issues || [];
-
-    issues.push(...pageIssues);
-
-    startAt += pageIssues.length;
-
-    if (!pageIssues.length || startAt >= data.total) break;
+  } else {
+    let startAt = 0;
+    while (true) {
+      const url = `${baseSearchUrl}&startAt=${startAt}`;
+      const res = await fetch(url, { headers });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Jira API error ${res.status}: ${text}`);
+      }
+      const data = await res.json();
+      const pageIssues = data.issues || [];
+      issues.push(...pageIssues);
+      startAt += pageIssues.length;
+      if (!pageIssues.length || startAt >= (data.total ?? startAt)) break;
+    }
   }
 
   return {

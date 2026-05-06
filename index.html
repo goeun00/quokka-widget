@@ -425,13 +425,7 @@
                 type="text"
                 placeholder="feature/branch-name"
               />
-              <button
-                class="ic-btn primary branch-save-btn"
-                type="button"
-                aria-label="저장"
-              >
-                <span class="svg-icon i-check"></span>
-              </button>
+              <button class="add-text-btn branch-save-btn" type="button">추가</button>
             </div>
           </div>
         </div>
@@ -455,32 +449,37 @@
               aria-label="메모 수정"
             ></textarea>
           </div>
+        </div>
+        <div class="link-box">
+          <div class="link-label">
+            <span class="svg-icon i-link"></span> Link
+          </div>
+          <div class="link-edit-actions">
+            <button
+              class="ic-btn link-manage-toggle"
+              type="button"
+              aria-label="링크 관리"
+            >
+              <span class="svg-icon i-edit"></span>
+            </button>
+          </div>
           <div class="saved-links"></div>
           <div class="saved-link-add-panel">
-            <div class="link-edit-head">
-              <span class="link-edit-title">link</span>
-            </div>
             <div class="link-manage-list"></div>
             <div class="link-new-row">
-              <span class="link-icon-placeholder"></span>
               <input
                 class="link-input new-link-input"
                 type="text"
                 placeholder="https://..."
               />
-              <button
-                class="ic-btn primary add-link-btn"
-                type="button"
-                aria-label="추가"
-              >
-                <span class="svg-icon i-check"></span>
-              </button>
+              <button class="add-text-btn add-link-btn" type="button">추가</button>
             </div>
           </div>
         </div>
         <div class="card-pills">
           <button class="pill-btn pill-branch" type="button">+ Branch</button>
           <button class="pill-btn pill-memo" type="button">+ Memo</button>
+          <button class="pill-btn pill-link" type="button">+ Link</button>
         </div>
       </article>
     </template>
