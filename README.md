@@ -1,52 +1,53 @@
-# 🦘 쿼카 큐비 바탕화면 위젯
+# 🐾 Tiny Clerk
 
-귀여운 쿼카 큐비가 바탕화면 우하단에 떠있는 위젯이에요!
+> Jira 이슈, GitHub PR, Logwork를 한 곳에서 확인하는 Electron 기반 개인 업무 도크 앱
 
-## 📦 설치 방법
+매일 확인해야 하는 Jira 업무, GitHub PR, Jira 로그워크를 한 화면에 모아주는 작은 업무 비서입니다.  
+업무 현황을 빠르게 보고, 이슈별 메모/브랜치/링크를 관리하고, 로그워크 기반 업무보고 엑셀도 만들 수 있어요.
 
-### 1. Node.js 설치
-https://nodejs.org 에서 LTS 버전 설치
+---
 
-### 2. 폴더 구조 만들기
-```
-quokka-widget/
-├── main.js
-├── preload.js
-├── index.html
-├── package.json
-└── assets/
-    └── quokka.mp4   ← ★ 여기에 MP4 파일 넣기!
-```
+## ✨ Features
 
-### 3. MP4 파일 넣기
-- Pika에서 받은 MP4 파일을 `assets` 폴더에 넣기
-- 파일명을 `quokka.mp4` 로 변경
-- (다른 이름 쓰려면 index.html에서 src 경로 수정)
+- **Home**  
+  이번 달 로그워크, 진행 중 Jira 이슈, 오픈 PR 요약
 
-### 4. 실행하기
-```bash
-# 이 폴더에서 터미널 열고
-npm install
-npm start
-```
+- **[Home]Logwork**  
+  Jira worklog 기반 월별 작업 시간을 확인해용.  
+  월별 합산은 worklog의 `Date Started` 기준으로 계산하며, 선택한 월 범위 안에 시작된 worklog만 포함합니다.
 
-## 🎮 사용법
+- **[Home]Excel Export**  
+  Jira 로그워크의 기준으로 업무보고용 엑셀을 생성합니다.  
+  `소요시간(D)`은 해당 월에 내가 등록한 worklog를 이슈별로 합산하고, `8h = 1d` 기준으로 계산합니다.
 
-- **클릭** → 말풍선 메시지 + 점프!
-- **드래그** → 상단 빈 영역 잡고 이동
-- **우클릭** → 메뉴 (상태변경 / 종료)
+  | 업무 시작일 | `Target start` |
+  | 업무 종료일 | `Target end` |
+  | Mark up Delivery | `Expected Delivery Date` |
+  | 소요시간(D) | 내가 등록한 worklog 합계 |
+  | 비고 | Jira issue URL |
 
-## ✨ 기능
+- **Jira**  
+  TODO / WIP / DONE / PIN 필터, 검색, 메모, 브랜치, 링크 관리
+  DONE 된 이슈는 설정에서 설정한 날짜 기준에따라 기간이 지나면 삭제됩니다.
 
-- 바탕화면 우하단 고정
-- 항상 위에 떠있음
-- 투명 배경
-- 클릭하면 귀여운 반응
-- 상태 메시지 자동 변경
+- **[Jira]Pinned Issues**  
+  내가 원하는 이슈만 PIN으로 고정해두기
+  PIN 된 이슈는 DONE 설정기간이 지나도 사라지지 않아용!
 
-## 🔧 커스터마이징
+- **Pull Requests**  
+  내가 작성한 GitHub PR 목록 확인, Open / Merged / Closed 필터
 
-`index.html` 에서:
-- `messages` 배열 → 클릭시 나오는 메시지 변경
-- `statuses` 배열 → 하단 상태 메시지 변경
-- `width/height` → 위젯 크기 변경 (main.js에서도 동일하게)
+---
+
+## 🗂 Project Structure
+
+widget
+├─ main.js # Electron main process, IPC, Excel export
+├─ renderer.js # UI state, events, rendering
+├─ jira.js # Jira API
+├─ github.js # GitHub API
+├─ store.js # Local storage
+├─ preload.js # API bridge
+├─ index.html # Markup
+├─ style.css # Styles
+└─ package.json

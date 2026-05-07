@@ -43,26 +43,30 @@ async function fetchMyPRs(baseUrl, token, repos = []) {
   const avatarUrl = me.avatar_url || "";
 
   const threshold = new Date(Date.now() - 90 * 86400000);
-  const BATCH = 4;
-  const chunks = [];
 
-  for (let i = 0; i < repos.length; i += BATCH) {
-    const batch = await Promise.all(
-      repos.slice(i, i + BATCH).map(async ({ owner, repo }) => {
+  const pLimit = (await import("p-limit")).default;
+  const limit = pLimit(3);
+
+  const chunks = await Promise.all(
+    repos.map(({ owner, repo }) =>
+      limit(async () => {
         try {
           const res = await ghFetch(
             `${apiBase}/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=100`,
             { headers },
           );
+
           const prs = await res.json();
 
           return prs
             .filter((pr) => pr.user?.login === login)
             .filter((pr) => {
               if (pr.state === "open") return true;
+
               const refDate = new Date(
                 pr.closed_at || pr.updated_at || pr.created_at,
               );
+
               return refDate >= threshold;
             })
             .map((pr) => {
@@ -88,7 +92,12 @@ async function fetchMyPRs(baseUrl, token, repos = []) {
                 closedAt: pr.closed_at,
                 mergedAt: pr.merged_at,
                 stateLabel,
-                stateGroup: pr.state === "open" ? "open" : pr.merged_at ? "merged" : "closed",
+                stateGroup:
+                  pr.state === "open"
+                    ? "open"
+                    : pr.merged_at
+                      ? "merged"
+                      : "closed",
               };
             });
         } catch (error) {
@@ -96,9 +105,8 @@ async function fetchMyPRs(baseUrl, token, repos = []) {
           return [];
         }
       }),
-    );
-    chunks.push(...batch);
-  }
+    ),
+  );
 
   return {
     login,

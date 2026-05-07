@@ -85,19 +85,22 @@
           <section class="view is-active" data-panel="home">
             <div class="home-body">
               <div class="logwork-card">
+                <button class="ic-btn excel-btn green" id="exportReportBtn" type="button">
+                  <span class="svg-icon i-excel"></span>
+                </button>
                 <div class="state" id="logworkState" hidden></div>
                 <div class="logwork-nav">
-                  <button class="logwork-nav-btn" id="logworkPrev">‹</button>
+                  <button class="ic-btn sm" id="logworkPrev">   <span class="svg-icon i-prev"></span></button>
                   <span
                     class="logwork-month-label"
                     id="logworkMonthLabel"
                   ></span>
-                  <button class="logwork-nav-btn" id="logworkNext">›</button>
+                  <button class="ic-btn sm" id="logworkNext">   <span class="svg-icon i-next"></span></button>
                 </div>
                 <div class="logwork-row">
                   <div class="logwork-numbers">
                     <span class="logwork-logged-num">
-                      <span id="logworkLoggedVal">0</span>
+                      <span id="logworkLoggedVal">0</span>d
                     </span>
                     <button
                       type="button"
@@ -117,8 +120,12 @@
                     min="0"
                   />
                   <span class="logwork-edit-unit">d</span>
-                  <button class="ic-btn primary" id="logworkLoggedSave"><span class="svg-icon i-check"></span></button>
-                  <button class="ic-btn" id="logworkLoggedCancel"><span class="svg-icon i-x"></span></button>
+                  <button class="ic-btn primary" id="logworkLoggedSave">
+                    <span class="svg-icon i-check"></span>
+                  </button>
+                  <button class="ic-btn" id="logworkLoggedCancel">
+                    <span class="svg-icon i-x"></span>
+                  </button>
                 </div>
                 <div class="logwork-edit-form" id="logworkTargetForm" hidden>
                   <span class="logwork-edit-label">목표</span>
@@ -129,8 +136,12 @@
                     min="1"
                   />
                   <span class="logwork-edit-unit">d</span>
-                  <button class="ic-btn primary" id="logworkTargetSave"><span class="svg-icon i-check"></span></button>
-                  <button class="ic-btn" id="logworkTargetCancel"><span class="svg-icon i-x"></span></button>
+                  <button class="ic-btn primary" id="logworkTargetSave">
+                    <span class="svg-icon i-check"></span>
+                  </button>
+                  <button class="ic-btn" id="logworkTargetCancel">
+                    <span class="svg-icon i-x"></span>
+                  </button>
                 </div>
                 <div class="logwork-track">
                   <div class="logwork-fill" id="logworkFill"></div>
@@ -143,7 +154,6 @@
               <div class="box_card">
                 <div class="section-head">
                   <span class="home-section-label">Logged Issues</span>
-                  <button class="ic-btn" id="exportReportBtn" type="button"><span class="svg-icon i-excel"></span></button>
                 </div>
                 <div class="home-mini-list" id="logworkList"></div>
               </div>
@@ -403,21 +413,17 @@
             </div>
             <div class="issue-title issue-title-link"></div>
           </div>
-          <div class="pin"><button class="ic-btn sm" type="button" title="핀"></button></div>
+          <div class="pin">
+            <button class="ic-btn sm" type="button" title="핀"></button>
+          </div>
         </div>
         <div class="branch-box">
           <div class="branch-header-row">
-            <span class="branch-label">Branch</span>
-            <button
-              class="ic-btn branch-add-btn"
-              type="button"
-              aria-label="브랜치 추가"
-              title="브랜치 추가"
-            >
+            <div class="link-stack branch-stack"></div>
+            <button class="ic-btn branch-add-btn" type="button">
               <span class="svg-icon i-plus"></span>
             </button>
           </div>
-          <div class="link-stack branch-stack"></div>
           <div class="branch-edit-area">
             <div class="branch-add-row">
               <input
@@ -425,7 +431,9 @@
                 type="text"
                 placeholder="feature/branch-name"
               />
-              <button class="add-text-btn branch-save-btn" type="button">추가</button>
+              <button class="ic-btn branch-save-btn is-primary" type="button">
+                <span class="svg-icon i-plus"></span>
+              </button>
             </div>
           </div>
         </div>
@@ -455,11 +463,7 @@
             <span class="svg-icon i-link"></span> Link
           </div>
           <div class="link-edit-actions">
-            <button
-              class="ic-btn link-manage-toggle"
-              type="button"
-              aria-label="링크 관리"
-            >
+            <button class="ic-btn link-manage-toggle" type="button">
               <span class="svg-icon i-edit"></span>
             </button>
           </div>
@@ -472,7 +476,9 @@
                 type="text"
                 placeholder="https://..."
               />
-              <button class="add-text-btn add-link-btn" type="button">추가</button>
+              <button class="add-link-btn ic-btn is-primary" type="button">
+                <span class="svg-icon i-check"></span>
+              </button>
             </div>
           </div>
         </div>
@@ -485,20 +491,40 @@
     </template>
 
     <template id="branchRowTemplate">
-      <div class="linked-row branch-row">
+      <div class="linked-row">
         <div class="branch-read">
-          <span class="linked-dot branch"></span>
+          <span class="linked-row-label">Branch</span>
           <span><strong class="branch-name"></strong></span>
           <span class="row-actions">
-            <button class="ic-btn sm copy" type="button" aria-label="복사"></button>
-            <button class="ic-btn sm edit" type="button" aria-label="수정"></button>
-            <button class="ic-btn sm danger" type="button" aria-label="삭제"></button>
+            <button
+              class="ic-btn sm copy"
+              type="button"
+              aria-label="복사"
+            ></button>
+            <button
+              class="ic-btn sm edit"
+              type="button"
+              aria-label="수정"
+            ></button>
+            <button
+              class="ic-btn sm danger"
+              type="button"
+              aria-label="삭제"
+            ></button>
           </span>
         </div>
         <div class="branch-edit-line" hidden>
           <input class="branch-input branch-edit-input" type="text" />
-          <button class="ic-btn sm primary save" type="button" aria-label="저장"></button>
-          <button class="ic-btn sm cancel" type="button" aria-label="취소"></button>
+          <button
+            class="ic-btn sm primary save"
+            type="button"
+            aria-label="저장"
+          ></button>
+          <button
+            class="ic-btn sm cancel"
+            type="button"
+            aria-label="취소"
+          ></button>
         </div>
       </div>
     </template>
@@ -546,8 +572,16 @@
           />
         </div>
         <div class="link-manage-actions">
-          <button class="ic-btn primary save" type="button" aria-label="저장"></button>
-          <button class="ic-btn danger" type="button" aria-label="삭제"></button>
+          <button
+            class="ic-btn primary save"
+            type="button"
+            aria-label="저장"
+          ></button>
+          <button
+            class="ic-btn danger"
+            type="button"
+            aria-label="삭제"
+          ></button>
         </div>
       </div>
     </template>
@@ -583,26 +617,30 @@
 
     <template id="prJiraRowTemplate">
       <button
-        class="linked-row pr-jira-row"
+        class="linked-row linked-row"
         type="button"
         aria-label="연결된 Jira 열기"
       >
-        <span class="pr-row-content">
-          <span class="pr-row-label">Jira</span>
+        <span class="linked-row-content">
+          <span class="linked-row-label">Jira</span>
           <strong class="jira-key"></strong>
         </span>
-        <span class="pr-row-cue" aria-hidden="true">↗</span>
+        <span class="linked-row-cue" aria-hidden="true">↗</span>
       </button>
     </template>
 
     <template id="prBranchRowTemplate">
-      <button class="pr-branch-row" type="button" aria-label="PR diff 열기">
+      <button
+        class="linked-row linked-row"
+        type="button"
+        aria-label="PR diff 열기"
+      >
         <span class="pr-branch-text">
           <span class="pr-head"></span>
           <span class="pr-arrow">→</span>
           <span class="pr-base"></span>
         </span>
-        <span class="pr-row-cue" aria-hidden="true">⌁</span>
+        <span class="linked-row-cue" aria-hidden="true">⌁</span>
       </button>
     </template>
 
@@ -628,25 +666,31 @@
     </template>
 
     <template id="memoViewActionsTemplate">
-      <button class="ic-btn memo-link-toggle" type="button" aria-label="메모 편집">
+      <button
+        class="ic-btn memo-link-toggle"
+        type="button"
+        aria-label="메모 편집"
+      >
         <span class="svg-icon i-edit"></span>
       </button>
     </template>
 
     <template id="memoEditActionsTemplate">
-      <button class="ic-btn primary memo-save-btn" type="button" aria-label="저장">
+      <button
+        class="ic-btn sm primary memo-save-btn"
+        type="button"
+        aria-label="저장"
+      >
         <span class="svg-icon i-check"></span>
       </button>
-      <button class="ic-btn memo-cancel-btn" type="button" aria-label="취소">
+      <button class="ic-btn sm memo-cancel-btn" type="button" aria-label="취소">
         <span class="svg-icon i-x"></span>
       </button>
     </template>
 
-
     <template id="linkPickerButtonTemplate">
       <button class="link-ico" type="button"></button>
     </template>
-
 
     <script src="./renderer.js"></script>
   </body>

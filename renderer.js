@@ -108,13 +108,31 @@ function showSpeech(msg, delay = 3200) {
     speech.textContent = "";
   }, delay);
 }
-function setPanel(open, view = state.view) {
+function setPanel(open, view = state.previousView || state.view || "home") {
+  if (!open) {
+    state.previousView = state.view || state.previousView || "home";
+  }
   state.panelOpen = open;
   $("#dockFrame").classList.toggle("is-open", open);
-  if (open) setView(view);
+
+  if (open) {
+    setView(view);
+  }
 }
-function setView(view) {
+
+function isRememberableView(view) {
+  return ["home", "jira", "pr"].includes(view);
+}
+
+function setView(view, options = {}) {
+  const { skipRemember = false } = options;
+
   state.view = view;
+
+  if (!skipRemember && isRememberableView(view)) {
+    state.previousView = view;
+  }
+
   $("#topTabs").classList.toggle("is-settings", view === "settings");
   const isSettings = view === "settings";
 
@@ -129,9 +147,11 @@ function setView(view) {
   $$(".top-tab").forEach((tab) =>
     tab.classList.toggle("is-on", tab.dataset.view === view),
   );
+
   $$(".view").forEach((panel) =>
     panel.classList.toggle("is-active", panel.dataset.panel === view),
   );
+
   const name = state.userName || "goeun";
   const titles = {
     home: `@${name} · Home`,
@@ -139,13 +159,14 @@ function setView(view) {
     pr: `@${name} · Pull Requests`,
     settings: `@${name} · Settings`,
   };
+
   $("#dynamicTitle").textContent = titles[view] || titles.home;
+
   if (view === "settings") loadSettingsIntoForm();
   if (view === "jira") renderIssues();
   if (view === "pr") renderPRs();
   if (view === "home") renderHome();
 }
-
 function setLoading(type, text) {
   const map = {
     jira: "#jiraState",
@@ -363,20 +384,8 @@ async function boot() {
 }
 
 function bindChrome() {
-  $("#dockBtn").addEventListener("click", async () => {
-    setPanel(!state.panelOpen, state.previousView || "jira");
-    if (state.panelOpen && state.view === "jira" && !state.issues.length)
-      await fetchIssues();
-    if (state.panelOpen && state.view === "pr" && !state.prs.length)
-      await fetchPRs();
-  });
-  $("#ghDockBtn").addEventListener("click", async () => {
-    setPanel(!state.panelOpen, state.previousView || "jira");
-    if (state.panelOpen && state.view === "jira" && !state.issues.length)
-      await fetchIssues();
-    if (state.panelOpen && state.view === "pr" && !state.prs.length)
-      await fetchPRs();
-  });
+  $("#dockBtn").addEventListener("click", toggleDockPanel);
+  $("#ghDockBtn").addEventListener("click", toggleDockPanel);
 
   updateDockVisibility();
   $("#closePanelBtn").addEventListener("click", () => setPanel(false));
@@ -394,11 +403,16 @@ function bindChrome() {
     }
   });
   $("#settingsBtn").addEventListener("click", () => {
-    if (state.view === "settings") setView(state.previousView || "jira");
-    else {
-      state.previousView = state.view;
-      setView("settings");
+    if (state.view === "settings") {
+      setView(state.previousView || "home");
+      return;
     }
+
+    if (isRememberableView(state.view)) {
+      state.previousView = state.view;
+    }
+
+    setView("settings", { skipRemember: true });
   });
   $$(".top-tab").forEach((tab) =>
     tab.addEventListener("click", () => setView(tab.dataset.view)),
@@ -451,6 +465,19 @@ function bindChrome() {
     }
   });
 }
+async function toggleDockPanel() {
+  const nextOpen = !state.panelOpen;
+  const nextView = state.previousView || state.view || "home";
+  setPanel(nextOpen, nextView);
+  if (!state.panelOpen) return;
+  if (state.view === "jira" && !state.issues.length) {
+    await fetchIssues();
+  }
+  if (state.view === "pr" && !state.prs.length) {
+    await fetchPRs();
+  }
+}
+
 function bindFilters() {
   $$("[data-jira-filter]").forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -726,6 +753,18 @@ function parseTimeSpentToSeconds(text = "") {
   return seconds;
 }
 
+function getWorkCategory(components = []) {
+  const names = components.map((component) =>
+    String(component.name || component).toUpperCase(),
+  );
+  const hasGmarket = names.some((name) => name.includes("GMARKET"));
+  const hasAuction = names.some((name) => name.includes("AUCTION"));
+  if (hasGmarket && hasAuction) return "G/I";
+  if (hasGmarket) return "G";
+  if (hasAuction) return "I";
+  return "";
+}
+
 function buildWorkReportRows() {
   const { logs = [] } = getLogworkData(state.logworkOffset);
   const issueMap = new Map(state.issues.map((issue) => [issue.key, issue]));
@@ -757,7 +796,7 @@ function buildWorkReportRows() {
       return {
         "JIRA 번호": issueKey,
         업무내용: issue.summary || sorted[0]?.summary || "",
-        업무분류: "",
+        업무분류: getWorkCategory(issue.components || []),
         Type: /^(GPP|BCI)-/i.test(issueKey) ? "BC" : "DR",
         요청구분: "JIRA",
         요청자: (issue.reporter || "").replace(/\s*\([^)]*\)\s*$/, "").trim(),
