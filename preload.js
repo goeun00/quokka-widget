@@ -17,6 +17,7 @@ window.api = {
   getGHHistory: () => ipcRenderer.invoke("gh:getHistory"),
   saveGHHistory: (items) => ipcRenderer.invoke("gh:saveHistory", items),
   openUrl: (u) => ipcRenderer.send("open-url", u),
+  openUpdateLogFolder: () => ipcRenderer.send("open-update-log-folder"),
   quit: () => ipcRenderer.send("quit-app"),
   setIgnoreMouse: (v) => ipcRenderer.send("set-ignore-mouse", v),
   moveWindow: (pos) => ipcRenderer.send("move-window", pos),

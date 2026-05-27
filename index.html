@@ -278,7 +278,7 @@
                       id="userName"
                       class="field-input"
                       type="text"
-                      placeholder="goeun"
+                      placeholder="name"
                     />
                   </div>
                   <div class="form-row">
@@ -369,6 +369,21 @@
                       type="password"
                       placeholder="PAT 입력"
                     />
+                  </div>
+                  <div class="form-row">
+                    <label for="githubRepo">GitHub Repositories</label>
+                    <div class="repo-add-row">
+                      <input
+                        id="githubRepo"
+                        class="field-input"
+                        type="text"
+                        placeholder="owner/repo"
+                      />
+                      <button class="ic-btn is-primary" id="addRepoBtn" type="button">
+                        <span class="svg-icon i-plus"></span>
+                      </button>
+                    </div>
+                    <div class="repo-list" id="githubRepoList"></div>
                   </div>
                 </section>
                 <button class="save-btn" id="saveSettingsBtn" type="button">

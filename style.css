@@ -1524,8 +1524,39 @@ button {
 .repo-row {
   grid-template-columns: minmax(0, 1fr) 110px 48px;
 }
+.repo-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+}
+.repo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
 .repo-list .repo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 7px 8px 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-soft);
   margin-top: 0;
+}
+.repo-name {
+  overflow: hidden;
+  font-size: var(--fs-12);
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.repo-empty {
+  padding: 4px 0;
+  font-size: var(--fs-12);
+  color: var(--weak);
 }
 .top-tabs {
   grid-template-columns: 40px 1fr 1fr;

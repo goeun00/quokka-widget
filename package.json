@@ -1,11 +1,12 @@
 {
   "name": "quokka-widget",
-  "version": "2.0.1",
+  "version": "1.0.0",
   "description": "쿼카 큐비 Jira 비서 위젯",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "publish": "electron-builder --publish always"
   },
   "build": {
     "appId": "com.example.app",

@@ -23,14 +23,12 @@ function setMemoActions(card, mode = "view") {
   if (!wrap) return;
 
   wrap.replaceChildren();
-  const templateId =
-    mode === "edit" ? "memoEditActionsTemplate" : "memoViewActionsTemplate";
+  const templateId = mode === "edit" ? "memoEditActionsTemplate" : "memoViewActionsTemplate";
   const fragment = document.getElementById(templateId)?.content.cloneNode(true);
   if (fragment) wrap.appendChild(fragment);
 }
 
-const icon = (name, extra = "") =>
-  `<span class="svg-icon i-${name}${extra ? ` ${extra}` : ""}"></span>`;
+const icon = (name, extra = "") => `<span class="svg-icon i-${name}${extra ? ` ${extra}` : ""}"></span>`;
 
 const ICONS = {
   bug: icon("bug"),
@@ -79,7 +77,7 @@ const state = {
   reposDraft: [],
   repoEditingIndex: null,
   dockCharacter: "quokka",
-  userName: "goeun",
+  userName: "name",
   logwork: {},
   logworkOffset: 0,
 };
@@ -87,10 +85,7 @@ const state = {
 function esc(s = "") {
   return String(s).replace(
     /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
-        c
-      ],
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
   );
 }
 let speechTimer = null;
@@ -109,7 +104,7 @@ function showSpeech(msg, delay = 3200) {
   }, delay);
 }
 function setPanel(open, view = state.previousView || state.view || "home") {
-  if (!open) {
+  if (!open && isRememberableView(state.view)) {
     state.previousView = state.view || state.previousView || "home";
   }
   state.panelOpen = open;
@@ -122,6 +117,10 @@ function setPanel(open, view = state.previousView || state.view || "home") {
 
 function isRememberableView(view) {
   return ["home", "jira", "pr"].includes(view);
+}
+
+function getPreviousView() {
+  return isRememberableView(state.previousView) ? state.previousView : "home";
 }
 
 function setView(view, options = {}) {
@@ -144,15 +143,11 @@ function setView(view, options = {}) {
     ? '<span class="svg-icon i-back"></span>'
     : '<span class="svg-icon i-settings"></span>';
 
-  $$(".top-tab").forEach((tab) =>
-    tab.classList.toggle("is-on", tab.dataset.view === view),
-  );
+  $$(".top-tab").forEach((tab) => tab.classList.toggle("is-on", tab.dataset.view === view));
 
-  $$(".view").forEach((panel) =>
-    panel.classList.toggle("is-active", panel.dataset.panel === view),
-  );
+  $$(".view").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.panel === view));
 
-  const name = state.userName || "goeun";
+  const name = state.userName || "name";
   const titles = {
     home: `@${name} · Home`,
     jira: `@${name} · Jira`,
@@ -229,21 +224,18 @@ function typeInfo(type = "") {
 function linkLabel(url) {
   try {
     const u = new URL(url);
-    if (u.protocol === "file:")
-      return decodeURIComponent(u.pathname.split("/").pop()) || url;
+    if (u.protocol === "file:") return decodeURIComponent(u.pathname.split("/").pop()) || url;
     return u.hostname.replace(/^www\./, "");
   } catch {
     return url;
   }
 }
 function detectIconId(url, iconId = "") {
-  if (iconId && LINK_ICON_OPTIONS.some((item) => item.id === iconId))
-    return iconId;
+  if (iconId && LINK_ICON_OPTIONS.some((item) => item.id === iconId)) return iconId;
   const u = String(url || "").toLowerCase();
   if (u.includes("figma")) return "icoFigma";
   if (/github|gitlab/.test(u)) return "icoGithub";
-  if (/notion|docs\.google|confluence|atlassian|drive\.google/.test(u))
-    return "icoDoc";
+  if (/notion|docs\.google|confluence|atlassian|drive\.google/.test(u)) return "icoDoc";
   if (u.includes("desktop") || u.includes("pc")) return "icoDesktop";
   if (u.includes("mobile")) return "icoMobile";
   if (u.startsWith("file:")) return "icoFile";
@@ -251,9 +243,7 @@ function detectIconId(url, iconId = "") {
 }
 function linkIcon(url, iconId = "") {
   const id = detectIconId(url, iconId);
-  return (
-    LINK_ICON_OPTIONS.find((item) => item.id === id) || LINK_ICON_OPTIONS[0]
-  ).icon;
+  return (LINK_ICON_OPTIONS.find((item) => item.id === id) || LINK_ICON_OPTIONS[0]).icon;
 }
 function iconPickerHtml(selectedId = "icoLink") {
   return `<div class="link-picker">${LINK_ICON_OPTIONS.map((item) => `<button class="link-ico ${item.id === selectedId ? "is-picked" : ""}" type="button" data-icon-id="${item.id}" title="${esc(item.label)}">${item.icon}</button>`).join("")}</div>`;
@@ -266,10 +256,7 @@ function hl(text = "", keyword = "") {
 
   if (!terms.length) return safe;
 
-  const re = new RegExp(
-    `(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
-    "gi",
-  );
+  const re = new RegExp(`(${terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
   return safe.replace(re, "<mark>$1</mark>");
 }
 
@@ -329,9 +316,7 @@ function matchesQuery(fields, rawQuery = "") {
     const { field, value } = tokenParts(token);
     if (!value) return true;
     if (field) return matchesField(fields, field, value);
-    return Object.values(fields).some((fieldValue) =>
-      includesValue(fieldValue, value),
-    );
+    return Object.values(fields).some((fieldValue) => includesValue(fieldValue, value));
   });
 }
 
@@ -375,10 +360,7 @@ async function boot() {
   await loadLocalState();
   await loadSettings();
 
-  await Promise.allSettled([
-    fetchIssues({ silent: true }),
-    fetchPRs({ silent: true }),
-  ]);
+  await Promise.allSettled([fetchIssues({ silent: true }), fetchPRs({ silent: true })]);
   await fetchLogwork();
   renderAll();
 }
@@ -404,7 +386,7 @@ function bindChrome() {
   });
   $("#settingsBtn").addEventListener("click", () => {
     if (state.view === "settings") {
-      setView(state.previousView || "home");
+      setView(getPreviousView());
       return;
     }
 
@@ -414,9 +396,7 @@ function bindChrome() {
 
     setView("settings", { skipRemember: true });
   });
-  $$(".top-tab").forEach((tab) =>
-    tab.addEventListener("click", () => setView(tab.dataset.view)),
-  );
+  $$(".top-tab").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
 
   $("#avatarBtn").addEventListener("click", toggleTheme);
   $("#ctxTheme").addEventListener("click", toggleTheme);
@@ -425,15 +405,12 @@ function bindChrome() {
   $("#dock").addEventListener("contextmenu", (e) => {
     e.preventDefault();
     const menu = $("#ctxMenu");
-    menu.style.left =
-      Math.max(8, Math.min(e.clientX, window.innerWidth - 148)) + "px";
-    menu.style.top =
-      Math.max(8, Math.min(e.clientY - 70, window.innerHeight - 90)) + "px";
+    menu.style.left = Math.max(8, Math.min(e.clientX, window.innerWidth - 148)) + "px";
+    menu.style.top = Math.max(8, Math.min(e.clientY - 70, window.innerHeight - 90)) + "px";
     menu.classList.add("show");
   });
   document.addEventListener("click", (e) => {
-    if (!$("#ctxMenu").contains(e.target))
-      $("#ctxMenu").classList.remove("show");
+    if (!$("#ctxMenu").contains(e.target)) $("#ctxMenu").classList.remove("show");
   });
 
   document.addEventListener("mousemove", (e) => {
@@ -450,6 +427,12 @@ function bindChrome() {
   $("#jiraSearch").addEventListener("input", renderIssues);
   $("#prSearch").addEventListener("input", renderPRs);
   $("#saveSettingsBtn").addEventListener("click", saveSettingsFromForm);
+  $("#addRepoBtn")?.addEventListener("click", addRepoFromForm);
+  $("#githubRepo")?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    addRepoFromForm();
+  });
   $("#usePersonalJira")?.addEventListener("change", () => {
     $("#jiraEmailWrap").hidden = !$("#usePersonalJira").checked;
   });
@@ -459,15 +442,13 @@ function bindChrome() {
   });
   document.addEventListener("click", (e) => {
     if (!e.target.closest?.(".link-icon-select")) {
-      $$(".link-icon-select.is-open").forEach((el) =>
-        el.classList.remove("is-open"),
-      );
+      $$(".link-icon-select.is-open").forEach((el) => el.classList.remove("is-open"));
     }
   });
 }
 async function toggleDockPanel() {
   const nextOpen = !state.panelOpen;
-  const nextView = state.previousView || state.view || "home";
+  const nextView = getPreviousView();
   setPanel(nextOpen, nextView);
   if (!state.panelOpen) return;
   if (state.view === "jira" && !state.issues.length) {
@@ -482,18 +463,14 @@ function bindFilters() {
   $$("[data-jira-filter]").forEach((btn) =>
     btn.addEventListener("click", () => {
       state.jiraFilter = btn.dataset.jiraFilter;
-      $$("[data-jira-filter]").forEach((b) =>
-        b.classList.toggle("is-on", b === btn),
-      );
+      $$("[data-jira-filter]").forEach((b) => b.classList.toggle("is-on", b === btn));
       renderIssues();
     }),
   );
   $$("[data-pr-filter]").forEach((btn) =>
     btn.addEventListener("click", () => {
       state.prFilter = btn.dataset.prFilter;
-      $$("[data-pr-filter]").forEach((b) =>
-        b.classList.toggle("is-on", b === btn),
-      );
+      $$("[data-pr-filter]").forEach((b) => b.classList.toggle("is-on", b === btn));
       renderPRs();
     }),
   );
@@ -634,34 +611,16 @@ function renderLogworkList(logs = []) {
 function renderLogwork() {
   const offset = state.logworkOffset;
   const { logged, target, logs = [] } = getLogworkData(offset);
-  const reportTotal = buildWorkReportRows().reduce(
-    (sum, row) => sum + Number(row["소요시간(D)"] || 0),
-    0,
-  );
+  const reportTotal = buildWorkReportRows().reduce((sum, row) => sum + Number(row["소요시간(D)"] || 0), 0);
   const displayLogged = reportTotal || logged;
 
   $("#logworkTargetForm").hidden = true;
   const d = getLogworkMonth(offset);
-  const months = [
-    "1월",
-    "2월",
-    "3월",
-    "4월",
-    "5월",
-    "6월",
-    "7월",
-    "8월",
-    "9월",
-    "10월",
-    "11월",
-    "12월",
-  ];
+  const months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
-  $("#logworkMonthLabel").textContent =
-    `${d.getFullYear()}년 ${months[d.getMonth()]}`;
+  $("#logworkMonthLabel").textContent = `${d.getFullYear()}년 ${months[d.getMonth()]}`;
 
-  const pct =
-    target > 0 ? Math.min(100, Math.round((displayLogged / target) * 100)) : 0;
+  const pct = target > 0 ? Math.min(100, Math.round((displayLogged / target) * 100)) : 0;
 
   const remaining = Math.max(0, target - displayLogged);
 
@@ -673,8 +632,7 @@ function renderLogwork() {
   fill.classList.toggle("is-done", pct >= 100);
 
   $("#logworkPct").textContent = `${formatDecimal(pct)}%`;
-  $("#logworkRemain").textContent =
-    remaining > 0 ? `${formatDecimal(remaining)}d 남음` : "목표 달성! 🎉";
+  $("#logworkRemain").textContent = remaining > 0 ? `${formatDecimal(remaining)}d 남음` : "목표 달성! 🎉";
 
   $("#logworkNext").disabled = offset >= 0;
 
@@ -682,25 +640,19 @@ function renderLogwork() {
 }
 function renderHomeJira() {
   const list = $("#homeJiraList");
-  const items = state.issues
-    .filter((issue) => issueCat(issue) !== "done")
-    .slice(0, 5);
+  const items = state.issues.filter((issue) => issueCat(issue) !== "done").slice(0, 5);
 
   list.replaceChildren();
 
   if (!items.length) {
-    renderEmptyState(
-      list,
-      state.issues.length ? "진행 중인 이슈가 없어요 🎉" : "이슈가 없어요",
-    );
+    renderEmptyState(list, state.issues.length ? "진행 중인 이슈가 없어요 🎉" : "이슈가 없어요");
     return;
   }
 
   items.forEach((issue) => {
     const cat = issueCat(issue);
     const item = cloneTemplate("homeMiniItemTemplate");
-    $(".home-mini-dot", item).style.background =
-      cat === "wip" ? "var(--blue)" : "var(--gray)";
+    $(".home-mini-dot", item).style.background = cat === "wip" ? "var(--blue)" : "var(--gray)";
     $(".home-mini-key", item).textContent = issue.key;
     $(".home-mini-title", item).textContent = issue.summary || "";
     const badge = $(".badge", item);
@@ -718,10 +670,7 @@ function renderHomePR() {
   list.replaceChildren();
 
   if (!items.length) {
-    renderEmptyState(
-      list,
-      state.prs.length ? "오픈 PR이 없어요 🎉" : "PR이 없어요",
-    );
+    renderEmptyState(list, state.prs.length ? "오픈 PR이 없어요 🎉" : "PR이 없어요");
     return;
   }
 
@@ -733,10 +682,7 @@ function renderHomePR() {
     const badge = $(".badge", item);
     badge.classList.add("open");
     badge.textContent = pr.stateLabel || "Open";
-    item.addEventListener(
-      "click",
-      () => pr.url && window.api?.openUrl?.(pr.url),
-    );
+    item.addEventListener("click", () => pr.url && window.api?.openUrl?.(pr.url));
     list.appendChild(item);
   });
 }
@@ -754,9 +700,7 @@ function parseTimeSpentToSeconds(text = "") {
 }
 
 function getWorkCategory(components = []) {
-  const names = components.map((component) =>
-    String(component.name || component).toUpperCase(),
-  );
+  const names = components.map((component) => String(component.name || component).toUpperCase());
   const hasGmarket = names.some((name) => name.includes("GMARKET"));
   const hasAuction = names.some((name) => name.includes("AUCTION"));
   if (hasGmarket && hasAuction) return "G/I";
@@ -773,12 +717,10 @@ function buildWorkReportRows() {
   logs.forEach((log) => {
     const key = log.issueKey;
     if (!key) return;
-    if (!group.has(key))
-      group.set(key, { issueKey: key, logs: [], seconds: 0 });
+    if (!group.has(key)) group.set(key, { issueKey: key, logs: [], seconds: 0 });
     const item = group.get(key);
     item.logs.push(log);
-    item.seconds +=
-      log.timeSpentSeconds || parseTimeSpentToSeconds(log.timeSpent);
+    item.seconds += log.timeSpentSeconds || parseTimeSpentToSeconds(log.timeSpent);
   });
 
   return [...group.values()]
@@ -788,9 +730,7 @@ function buildWorkReportRows() {
       return aLast - bLast;
     })
     .map(({ issueKey, logs, seconds }) => {
-      const sorted = logs
-        .slice()
-        .sort((a, b) => new Date(a.started) - new Date(b.started));
+      const sorted = logs.slice().sort((a, b) => new Date(a.started) - new Date(b.started));
       const fallbackLog = sorted[0] || {};
       const issue = issueMap.get(issueKey) || fallbackLog;
       return {
@@ -821,8 +761,7 @@ function renderHome() {
 function applyTheme(mode) {
   document.body.classList.toggle("dark-mode", mode === "dark");
   localStorage.setItem("theme", mode);
-  $("#ctxTheme").textContent =
-    mode === "dark" ? "☀ 라이트 모드" : "🌙 다크 모드";
+  $("#ctxTheme").textContent = mode === "dark" ? "☀ 라이트 모드" : "🌙 다크 모드";
 }
 function toggleTheme() {
   applyTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
@@ -879,19 +818,18 @@ async function loadSettings() {
   state.gh = {
     baseUrl: gh.baseUrl || "",
     token: gh.token || "",
-    repos: Array.isArray(gh.repos) ? gh.repos : [],
+    repos: cleanRepos(Array.isArray(gh.repos) ? gh.repos : []),
     login: "",
     avatarUrl: "",
   };
   state.reposDraft = [...state.gh.repos];
   state.dockCharacter = localStorage.getItem("dockCharacter") || "quokka";
-  state.userName = localStorage.getItem("userName") || "goeun";
+  state.userName = localStorage.getItem("userName") || "name";
   updateDockVisibility();
 }
 async function fetchIssues({ silent = false } = {}) {
   if (!state.jira.baseUrl || !state.jira.pat) {
-    if (!silent)
-      setLoading("jira", "설정에서 Jira URL/PAT를 먼저 입력해줘요 🐾");
+    if (!silent) setLoading("jira", "설정에서 Jira URL/PAT를 먼저 입력해줘요 🐾");
     updateCounts();
     return;
   }
@@ -954,18 +892,18 @@ async function ensurePinnedIssues() {
 
 async function fetchPRs({ silent = false } = {}) {
   if (!state.gh.baseUrl || !state.gh.token) {
-    if (!silent)
-      setLoading("pr", "설정에서 GitHub URL/TOKEN을 먼저 입력해줘요 🐇");
+    if (!silent) setLoading("pr", "설정에서 GitHub URL/TOKEN을 먼저 입력해줘요 🐇");
+    updateCounts();
+    return;
+  }
+  if (!state.gh.repos.length) {
+    if (!silent) setLoading("pr", "설정에서 GitHub 레포를 owner/repo 형태로 추가해줘요");
     updateCounts();
     return;
   }
   if (!silent) setLoading("pr", "GitHub PR 불러오는 중...");
   try {
-    const result = await window.api?.fetchGHPRs?.(
-      state.gh.baseUrl,
-      state.gh.token,
-      state.gh.repos,
-    );
+    const result = await window.api?.fetchGHPRs?.(state.gh.baseUrl, state.gh.token, state.gh.repos);
     state.prs = Array.isArray(result?.prs) ? result.prs : [];
     state.gh.login = result?.login || "";
     state.gh.avatarUrl = result?.avatarUrl || "";
@@ -989,9 +927,7 @@ function updateCounts() {
   $("#nTodo").textContent = counts.todo;
   $("#nWip").textContent = counts.wip;
   $("#nDone").textContent = counts.done;
-  $("#nPin").textContent = state.issues.filter((issue) =>
-    state.pins.has(issue.key),
-  ).length;
+  $("#nPin").textContent = state.issues.filter((issue) => state.pins.has(issue.key)).length;
   $("#tabJiraCount").textContent = state.issues.length;
 
   const open = state.prs.filter((p) => p.stateGroup === "open").length;
@@ -1012,16 +948,10 @@ function renderIssues() {
     if (state.jiraFilter === "pin") return state.pins.has(issue.key);
     return issueCat(issue) === state.jiraFilter;
   });
-  if (query)
-    items = items.filter((issue) =>
-      matchesQuery(issueSearchFields(issue), query),
-    );
+  if (query) items = items.filter((issue) => matchesQuery(issueSearchFields(issue), query));
   list.replaceChildren();
   if (!items.length) {
-    renderEmptyState(
-      list,
-      state.issues.length ? "조건에 맞는 이슈가 없어요" : "이슈가 없어요 🎉",
-    );
+    renderEmptyState(list, state.issues.length ? "조건에 맞는 이슈가 없어요" : "이슈가 없어요 🎉");
     return;
   }
   items.forEach((issue) => list.appendChild(createIssueCard(issue)));
@@ -1052,9 +982,7 @@ function createIssueCard(issue) {
   $(".date-label", card).textContent = fmtDate(issue.updated);
   $(".branch-input", card).placeholder = `feature/${key}/base`;
   $(".memo-label", card).innerHTML = `${ICONS.doc} Memo`;
-  $(".memo-text", card).innerHTML = state.memos[key]
-    ? hl(state.memos[key], query)
-    : "";
+  $(".memo-text", card).innerHTML = state.memos[key] ? hl(state.memos[key], query) : "";
   $(".memo-inline-textarea", card).value = state.memos[key] || "";
 
   renderBranches(card, issue);
@@ -1070,12 +998,8 @@ function createIssueCard(issue) {
     $(".memo-link-toggle", card).click();
   });
 
-  $(".issue-title-link", card).addEventListener("click", () =>
-    window.api?.openUrl?.(issue.url),
-  );
-  typeButton.addEventListener("click", () =>
-    navigator.clipboard?.writeText(key),
-  );
+  $(".issue-title-link", card).addEventListener("click", () => window.api?.openUrl?.(issue.url));
+  typeButton.addEventListener("click", () => navigator.clipboard?.writeText(key));
   $(".pin button", card).addEventListener("click", async (e) => {
     e.stopPropagation();
     state.pins.has(key) ? state.pins.delete(key) : state.pins.add(key);
@@ -1125,10 +1049,7 @@ function createIssueCard(issue) {
     const url = input.value.trim();
     if (!url) return;
     const iconId = detectIconId(url);
-    state.links[key] = [
-      ...(state.links[key] || []),
-      { url, label: linkLabel(url), iconId },
-    ];
+    state.links[key] = [...(state.links[key] || []), { url, label: linkLabel(url), iconId }];
     input.value = "";
     await saveLinks();
     renderLinks(card, issue);
@@ -1285,14 +1206,10 @@ function bindIconPicker(wrap, onPick) {
       e.preventDefault();
       e.stopPropagation();
       const iconId = btn.dataset.iconId || "icoLink";
-      const item =
-        LINK_ICON_OPTIONS.find((option) => option.id === iconId) ||
-        LINK_ICON_OPTIONS[0];
+      const item = LINK_ICON_OPTIONS.find((option) => option.id === iconId) || LINK_ICON_OPTIONS[0];
       current.innerHTML = item.icon;
       current.dataset.iconId = iconId;
-      $$("[data-icon-id]", picker).forEach((b) =>
-        b.classList.toggle("is-picked", b === btn),
-      );
+      $$("[data-icon-id]", picker).forEach((b) => b.classList.toggle("is-picked", b === btn));
       wrap.classList.remove("is-open");
       onPick?.(iconId);
     });
@@ -1310,10 +1227,7 @@ function renderLinks(card, issue) {
     const iconId = detectIconId(link.url, link.iconId);
     const chip = cloneTemplate("savedLinkTemplate");
     $(".saved-link-icon", chip).innerHTML = linkIcon(link.url, iconId);
-    $(".saved-link-text", chip).innerHTML = hl(
-      link.label || linkLabel(link.url),
-      query,
-    );
+    $(".saved-link-text", chip).innerHTML = hl(link.label || linkLabel(link.url), query);
 
     // 링크 클릭 시 URL 열기 (버튼이 아닌 영역만)
     chip.addEventListener("click", (e) => {
@@ -1431,10 +1345,7 @@ function renderPRs() {
   list.replaceChildren();
 
   if (!items.length) {
-    renderEmptyState(
-      list,
-      state.prs.length ? "조건에 맞는 PR이 없어요" : "PR이 없어요 🎉",
-    );
+    renderEmptyState(list, state.prs.length ? "조건에 맞는 PR이 없어요" : "PR이 없어요 🎉");
     return;
   }
 
@@ -1443,17 +1354,11 @@ function renderPRs() {
 function createPRCard(pr) {
   const query = $("#prSearch")?.value.trim() || "";
   const card = cloneTemplate("prCardTemplate");
-  const jiraKey =
-    (pr.title + " " + pr.head).match(/[A-Z][A-Z0-9]+-\d+/)?.[0] || "";
+  const jiraKey = (pr.title + " " + pr.head).match(/[A-Z][A-Z0-9]+-\d+/)?.[0] || "";
   const prUrl = pr.url || "";
   const diffUrl = prUrl ? `${prUrl}/files` : "";
 
-  const toneClass =
-    pr.stateGroup === "open"
-      ? "tone-open"
-      : pr.stateGroup === "merged"
-        ? "tone-merged"
-        : "tone-closed";
+  const toneClass = pr.stateGroup === "open" ? "tone-open" : pr.stateGroup === "merged" ? "tone-merged" : "tone-closed";
   card.classList.add(toneClass);
 
   const actionBtn = $(".pr-action-btn", card);
@@ -1464,16 +1369,10 @@ function createPRCard(pr) {
         ? `<span class="svg-icon i-check"></span>`
         : `<span class="svg-icon i-x"></span>`;
 
-  $(".pr-repo", card).innerHTML =
-    `${hl(pr.owner, query)} / ${hl(pr.repo, query)}`;
+  $(".pr-repo", card).innerHTML = `${hl(pr.owner, query)} / ${hl(pr.repo, query)}`;
 
   const status = $(".pr-state", card);
-  const badgeCls =
-    pr.stateGroup === "open"
-      ? "done"
-      : pr.stateGroup === "merged"
-        ? "merged"
-        : "closed";
+  const badgeCls = pr.stateGroup === "open" ? "done" : pr.stateGroup === "merged" ? "merged" : "closed";
   status.classList.add(badgeCls);
   status.textContent = pr.stateLabel || "";
 
@@ -1534,9 +1433,85 @@ function loadSettingsIntoForm() {
   $("#githubUrl").value = state.gh.baseUrl || "";
   $("#githubToken").value = state.gh.token || "";
   $("#dockCharacter").value = state.dockCharacter || "quokka";
-  $("#userName").value = state.userName || "goeun";
+  $("#userName").value = state.userName || "name";
   state.reposDraft = [...(state.gh.repos || [])];
   state.repoEditingIndex = null;
+  renderReposDraft();
+}
+
+function normalizeRepo(raw = "") {
+  const value = String(raw)
+    .trim()
+    .replace(/^https?:\/\/[^/]+\//, "");
+  const [owner = "", repo = ""] = value.split("/");
+
+  if (!owner.trim() || !repo.trim()) return null;
+
+  return {
+    owner: owner.trim(),
+    repo: repo.trim().replace(/\.git$/, ""),
+  };
+}
+
+function cleanRepos(repos = []) {
+  const seen = new Set();
+
+  return repos.reduce((acc, item) => {
+    const repo = normalizeRepo(typeof item === "string" ? item : `${item.owner || ""}/${item.repo || ""}`);
+    if (!repo) return acc;
+
+    const key = `${repo.owner}/${repo.repo}`.toLowerCase();
+    if (seen.has(key)) return acc;
+
+    seen.add(key);
+    acc.push(repo);
+    return acc;
+  }, []);
+}
+
+function renderReposDraft() {
+  const list = $("#githubRepoList");
+  if (!list) return;
+
+  list.replaceChildren();
+
+  if (!state.reposDraft.length) {
+    const empty = document.createElement("div");
+    empty.className = "repo-empty";
+    empty.textContent = "아직 추가된 레포가 없어요";
+    list.appendChild(empty);
+    return;
+  }
+
+  state.reposDraft.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "repo-item";
+    row.innerHTML = `
+      <span class="repo-name">${esc(item.owner)}/${esc(item.repo)}</span>
+      <button class="ic-btn sm danger" type="button" aria-label="레포 삭제">
+        <span class="svg-icon i-del"></span>
+      </button>
+    `;
+    $("button", row).addEventListener("click", () => {
+      state.reposDraft.splice(index, 1);
+      renderReposDraft();
+    });
+    list.appendChild(row);
+  });
+}
+
+function addRepoFromForm() {
+  const input = $("#githubRepo");
+  const repo = normalizeRepo(input?.value || "");
+
+  if (!repo) {
+    showSpeech("레포는 owner/repo 형태로 입력해줘요");
+    return;
+  }
+
+  state.reposDraft = cleanRepos([...state.reposDraft, repo]);
+  input.value = "";
+  renderReposDraft();
 }
 
 async function saveSettingsFromForm() {
@@ -1545,17 +1520,15 @@ async function saveSettingsFromForm() {
     pat: $("#jiraToken").value.trim(),
     doneDays: Number($("#doneDays").value || 60),
     usePersonalJira: !!$("#usePersonalJira")?.checked,
-    email: $("#usePersonalJira")?.checked
-      ? $("#jiraEmail")?.value.trim() || ""
-      : "",
+    email: $("#usePersonalJira")?.checked ? $("#jiraEmail")?.value.trim() || "" : "",
   };
   const gh = {
     baseUrl: $("#githubUrl").value.trim(),
     token: $("#githubToken").value.trim(),
-    repos: state.reposDraft,
+    repos: cleanRepos(state.reposDraft),
   };
   const dockCharacter = $("#dockCharacter").value || "quokka";
-  const userName = $("#userName").value.trim() || "goeun";
+  const userName = $("#userName").value.trim() || "name";
   await window.api?.saveSettings?.(jira);
   await window.api?.saveGHSettings?.(gh);
   localStorage.setItem("dockCharacter", dockCharacter);
@@ -1567,11 +1540,7 @@ async function saveSettingsFromForm() {
   updateDockVisibility();
   showSpeech("설정 저장 완료! 메인으로 돌아왔어요");
   setView(state.previousView || "jira");
-  await Promise.allSettled([
-    fetchIssues({ silent: true }),
-    fetchPRs({ silent: true }),
-    fetchLogwork(),
-  ]);
+  await Promise.allSettled([fetchIssues({ silent: true }), fetchPRs({ silent: true }), fetchLogwork()]);
 }
 
 let confirmOkHandler = null;
