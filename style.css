@@ -813,9 +813,7 @@ button {
   display: none;
   position: relative;
   margin-top: 12px;
-  padding: 10px;
   border-radius: 15px;
-  background: rgba(127, 113, 95, 0.08);
   gap: 7px;
 }
 .box_card.has-link .link-box,
@@ -825,9 +823,6 @@ button {
 .box_card.has-link .pill-link,
 .box_card.is-link-editing .pill-link {
   display: none;
-}
-.link-box:hover {
-  background: rgba(127, 113, 95, 0.12);
 }
 .card-pills {
   display: flex;
@@ -868,8 +863,7 @@ button {
   color: var(--sub);
   gap: 6px;
 }
-.memo-edit-actions,
-.link-edit-actions {
+.memo-edit-actions {
   display: flex;
   opacity: 0;
   position: absolute;
@@ -879,9 +873,7 @@ button {
   pointer-events: none;
 }
 .memo-box:hover .memo-edit-actions,
-.box_card.is-memo-editing .memo-edit-actions,
-.link-box:hover .link-edit-actions,
-.box_card.is-link-editing .link-edit-actions {
+.box_card.is-memo-editing .memo-edit-actions {
   opacity: 1;
   pointer-events: auto;
 }
@@ -958,8 +950,7 @@ button {
 .field-input {
   flex: 1;
   min-width: 0;
-  height: 32px;
-  padding: 0 10px;
+  padding: 4px 10px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--field);
@@ -1050,6 +1041,12 @@ button {
 .link-icon-select .link-ico-current {
   margin: 0;
 }
+
+.link-icon-select .link-ico-current {
+  height: 23px;
+  width: 23px;
+  padding: 0;
+}
 .link-ico {
   display: grid;
   width: 30px;
@@ -1086,33 +1083,58 @@ button {
   color: var(--coral);
   border-color: rgba(255, 131, 95, 0.42);
 }
-.saved-links {
+.box_saved-link {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
-/* .box_card.is-link-editing .saved-links {
-  display: none;
-} */
+.saved-links {
+  display: contents;
+  gap: 4px;
+}
+
 .saved-link {
-  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  padding: 4px 8px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--field);
   font-size: var(--fs-12);
-  font-weight: 800;
+  font-weight: 600;
   color: var(--sub);
   vertical-align: middle;
+  transition: all var(--dur-fast) var(--ease-out);
+  gap: 4px;
   cursor: pointer;
 }
 .saved-link:hover {
-  transform: translateY(-1px);
-  border-color: var(--line-strong);
+  border-color: var(--coral);
 }
 .saved-link .svg-icon {
   width: 13px;
   height: 13px;
   vertical-align: middle;
+}
+.saved-link-actions {
+  transition: opacity var(--dur-fast) var(--ease-out);
+  margin-left: 4px;
+}
+.saved-link-action-btn {
+  display: inline-block;
+  transition: var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  padding: 0;
+  color: var(--sub);
+  opacity: 0.9;
+}
+.saved-link-action-btn:hover {
+  color: var(--coral);
+}
+.saved-link-action-btn .svg-icon {
+  width: 11px;
+  height: 11px;
 }
 .saved-link-add-panel {
   display: none;
@@ -1132,29 +1154,40 @@ button {
   display: none;
 }
 .link-manage-item {
-  display: grid;
-  align-items: start;
   padding: 8px;
   border: 1px solid var(--line);
   border-radius: 13px;
   background: var(--field);
   font-size: var(--fs-12);
   color: var(--sub);
-  grid-template-columns: 30px minmax(0, 1fr) auto;
   gap: 7px;
 }
-.link-inputs {
+.link-manage-item .link-info {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
 }
+.link-edit-panel-inline {
+  margin-top: 8px;
+  animation: panelIn var(--dur-base) var(--ease-out);
+}
+.link-edit-panel-inline:empty {
+  display: none;
+}
+.link-inputs {
+  flex-grow: 1;
+}
 .link-manage-item .link-input {
-  height: 30px;
   background: var(--panel);
+  width: 100%;
+}
+.link-manage-item .link-input + .link-input {
+  margin-top: 4px;
 }
 .link-manage-actions {
   display: flex;
   gap: 5px;
+  margin-top: 8px;
 }
 .link-new-row {
   display: grid;
@@ -1181,11 +1214,6 @@ button {
   display: flex;
   gap: 7px;
 }
-.saved-link-actions {
-  display: flex;
-  margin-top: 7px;
-  gap: 6px;
-}
 .saved-link-mini {
   height: 26px;
   padding: 0 8px;
@@ -1205,6 +1233,7 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text);
 }
 
 .settings-body {

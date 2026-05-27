@@ -910,6 +910,12 @@ async function fetchIssues({ silent = false } = {}) {
   updateCounts();
 }
 async function fetchLogwork() {
+  if (!state.jira.baseUrl || !state.jira.pat) {
+    setLoading("logwork", "설정에서 Jira URL/PAT를 먼저 입력해줘요 🐾");
+    renderLogwork();
+    return;
+  }
+
   setLoading("logwork", "로그워크 불러오는 중...");
 
   try {
@@ -922,11 +928,11 @@ async function fetchLogwork() {
       logs: data.logs,
     };
 
+    setLoading("logwork", "");
     renderLogwork();
   } catch (e) {
     console.warn(e);
-  } finally {
-    setLoading("logwork", "");
+    setLoading("logwork", `❌ ${e.message || "로그워크를 불러오지 못했어요"}`);
   }
 }
 async function ensurePinnedIssues() {
@@ -947,9 +953,9 @@ async function ensurePinnedIssues() {
 }
 
 async function fetchPRs({ silent = false } = {}) {
-  if (!state.gh.baseUrl || !state.gh.token || !state.gh.repos?.length) {
+  if (!state.gh.baseUrl || !state.gh.token) {
     if (!silent)
-      setLoading("pr", "설정에서 GitHub URL/TOKEN/레포를 먼저 입력해줘요 🐇");
+      setLoading("pr", "설정에서 GitHub URL/TOKEN을 먼저 입력해줘요 🐇");
     updateCounts();
     return;
   }
@@ -1112,7 +1118,7 @@ function createIssueCard(issue) {
   bindLinkToggle(card);
   $(".pill-link", card).addEventListener("click", (e) => {
     e.stopPropagation();
-    $(".link-manage-toggle", card).click();
+    $(".link-add-toggle", card).click();
   });
   $(".add-link-btn", card).addEventListener("click", async () => {
     const input = $(".new-link-input", card);
@@ -1126,6 +1132,8 @@ function createIssueCard(issue) {
     input.value = "";
     await saveLinks();
     renderLinks(card, issue);
+    card.classList.remove("is-link-editing");
+    showSpeech("링크를 추가했어요");
   });
   $(".new-link-input", card).addEventListener("keydown", (e) => {
     if (e.key === "Enter") $(".add-link-btn", card).click();
@@ -1133,11 +1141,14 @@ function createIssueCard(issue) {
   return card;
 }
 function bindLinkToggle(card) {
-  const toggle = $(".link-manage-toggle", card);
+  const toggle = $(".link-add-toggle", card);
   if (!toggle) return;
   toggle.addEventListener("click", (e) => {
     e.stopPropagation();
     card.classList.toggle("is-link-editing");
+    if (card.classList.contains("is-link-editing")) {
+      $(".new-link-input", card).focus();
+    }
   });
 }
 function bindMemoToggle(card, key) {
@@ -1291,10 +1302,10 @@ function renderLinks(card, issue) {
   const key = issue.key;
   const query = $("#jiraSearch")?.value.trim() || "";
   const saved = $(".saved-links", card);
-  const manage = $(".link-manage-list", card);
+  const editPanelContainer = $(".link-edit-panel-inline", card);
   const arr = state.links[key] || [];
   saved.innerHTML = "";
-  manage.innerHTML = "";
+
   arr.forEach((link, idx) => {
     const iconId = detectIconId(link.url, link.iconId);
     const chip = cloneTemplate("savedLinkTemplate");
@@ -1303,54 +1314,99 @@ function renderLinks(card, issue) {
       link.label || linkLabel(link.url),
       query,
     );
+
+    // 링크 클릭 시 URL 열기 (버튼이 아닌 영역만)
     chip.addEventListener("click", (e) => {
-      e.stopPropagation();
-      window.api?.openUrl?.(link.url);
+      if (!e.target.closest(".saved-link-action-btn")) {
+        e.stopPropagation();
+        window.api?.openUrl?.(link.url);
+      }
     });
-    saved.appendChild(chip);
 
-    const item = cloneTemplate("linkManageItemTemplate");
-    const current = $(".link-ico-current", item);
-    current.dataset.iconId = iconId;
-    current.innerHTML = linkIcon(link.url, iconId);
-    fillIconPicker($(".link-icon-select", item), iconId);
-    $(".link-label-input", item).value = link.label || linkLabel(link.url);
-    $(".link-url-input", item).value = link.url;
-    $(".save", item).innerHTML = ICONS.check;
-    $(".danger", item).innerHTML = ICONS.del;
-
-    let selectedIconId = iconId;
-    bindIconPicker($(".link-icon-select", item), (nextIconId) => {
-      selectedIconId = nextIconId;
-    });
-    $(".save", item).addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const url = $(".link-url-input", item).value.trim();
-      const label = $(".link-label-input", item).value.trim();
-      if (!url) return;
-      state.links[key][idx] = {
-        url,
-        label: label || linkLabel(url),
-        iconId: selectedIconId,
-      };
-      await saveLinks();
-      renderLinks(card, issue);
-      showSpeech("링크를 저장했어요");
-    });
-    $(".danger", item).addEventListener("click", (e) => {
-      e.stopPropagation();
-      confirm("링크를 삭제할까요?", async () => {
-        state.links[key].splice(idx, 1);
-        if (!state.links[key].length) delete state.links[key];
-        await saveLinks();
-        renderLinks(card, issue);
-        showSpeech("링크를 삭제했어요");
+    // 수정 버튼 - 해당 링크의 수정 패널만 표시
+    const editBtn = $(".edit-link", chip);
+    if (editBtn) {
+      editBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showLinkEditPanelInline(card, issue, link, idx);
       });
-    });
-    manage.appendChild(item);
+    }
+
+    // 삭제 버튼
+    const deleteBtn = $(".delete-link", chip);
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        confirm("링크를 삭제할까요?", async () => {
+          state.links[key].splice(idx, 1);
+          if (!state.links[key].length) delete state.links[key];
+          await saveLinks();
+          renderLinks(card, issue);
+          showSpeech("링크를 삭제했어요");
+        });
+      });
+    }
+
+    saved.appendChild(chip);
   });
 
   card.classList.toggle("has-link", arr.length > 0);
+}
+
+// 개별 링크 수정 패널 표시
+function showLinkEditPanelInline(card, issue, link, idx) {
+  const container = $(".link-edit-panel-inline", card);
+  container.innerHTML = "";
+
+  const item = cloneTemplate("linkManageItemTemplate");
+  const iconId = detectIconId(link.url, link.iconId);
+
+  const current = $(".link-ico-current", item);
+  current.dataset.iconId = iconId;
+  current.innerHTML = linkIcon(link.url, iconId);
+  fillIconPicker($(".link-icon-select", item), iconId);
+
+  $(".link-label-input", item).value = link.label || linkLabel(link.url);
+  $(".link-url-input", item).value = link.url;
+  $(".save", item).innerHTML = ICONS.check;
+  $(".danger", item).innerHTML = ICONS.x;
+  $(".danger", item).title = "취소";
+
+  let selectedIconId = iconId;
+  bindIconPicker($(".link-icon-select", item), (nextIconId) => {
+    selectedIconId = nextIconId;
+  });
+
+  // 저장 버튼
+  $(".save", item).addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const url = $(".link-url-input", item).value.trim();
+    const label = $(".link-label-input", item).value.trim();
+    if (!url) return;
+
+    state.links[issue.key][idx] = {
+      url,
+      label: label || linkLabel(url),
+      iconId: selectedIconId,
+    };
+    await saveLinks();
+    container.innerHTML = "";
+    renderLinks(card, issue);
+    showSpeech("링크를 저장했어요");
+  });
+
+  // 취소 버튼
+  $(".danger", item).addEventListener("click", (e) => {
+    e.stopPropagation();
+    container.innerHTML = "";
+  });
+
+  container.appendChild(item);
+
+  // 첫 번째 input에 포커스
+  setTimeout(() => {
+    $(".link-label-input", item).focus();
+  }, 100);
 }
 function isPrDone(pr) {
   return pr.stateGroup === "merged" || pr.stateGroup === "closed";
@@ -1514,6 +1570,7 @@ async function saveSettingsFromForm() {
   await Promise.allSettled([
     fetchIssues({ silent: true }),
     fetchPRs({ silent: true }),
+    fetchLogwork(),
   ]);
 }
 

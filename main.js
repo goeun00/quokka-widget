@@ -6,6 +6,7 @@ const {
   shell,
   dialog,
 } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const XLSX = require("xlsx");
 const path = require("path");
 const os = require("os");
@@ -71,9 +72,42 @@ function createWindow() {
   });
 }
 
+function setupAutoUpdater() {
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    console.log("[update] checking...");
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[update] available:", info.version);
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    console.log("[update] not available");
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    console.log("[update] progress:", Math.round(progress.percent));
+  });
+
+  autoUpdater.on("update-downloaded", () => {
+    console.log("[update] downloaded. will install on quit.");
+  });
+
+  autoUpdater.on("error", (error) => {
+    console.warn("[update] error:", error);
+  });
+
+  autoUpdater.checkForUpdatesAndNotify();
+}
 app.whenReady().then(() => {
   console.log("main");
   createWindow();
+  setupAutoUpdater();
 });
 
 app.on("window-all-closed", () => {
