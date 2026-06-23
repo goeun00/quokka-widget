@@ -1,6 +1,6 @@
 {
   "name": "quokka-widget",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "쿼카 큐비 Jira 비서 위젯",
   "main": "main.js",
   "scripts": {
