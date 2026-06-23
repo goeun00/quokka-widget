@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, shell, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, screen, shell, globalShortcut } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const XLSX = require("xlsx");
 const path = require("path");
@@ -50,161 +50,97 @@ function createWindow() {
 
   if (!app.isPackaged) {
     win.webContents.openDevTools({ mode: "detach" });
-  }
-  ["index.html", "style.css"].forEach((file) => {
-    const target = path.join(__dirname, file);
-    if (fs.existsSync(target)) {
-      fs.watch(target, () => {
-        if (!win.isDestroyed()) win.webContents.reload();
-      });
-    }
-  });
-}
-
-// 업데이트 관련 로그를 파일로 남김 (패키징된 앱은 devtools가 없어서 console.log를 볼 수 없음)
-// 로그 위치: %APPDATA%/<앱이름>/update.log (Windows) 또는 ~/Library/Application Support/<앱이름>/update.log (macOS)
-function logUpdate(...args) {
-  try {
-    const updateLogPath = path.join(app.getPath("userData"), "update.log");
-    const line = `[${new Date().toISOString()}] ${args
-      .map((a) => (a instanceof Error ? a.stack || a.message : typeof a === "object" ? JSON.stringify(a) : String(a)))
-      .join(" ")}\n`;
-    fs.appendFileSync(updateLogPath, line);
-  } catch (e) {
-    console.warn("[update] failed to write log:", e);
+    ["index.html", "style.css"].forEach((file) => {
+      const target = path.join(__dirname, file);
+      if (fs.existsSync(target)) {
+        fs.watch(target, () => {
+          if (!win.isDestroyed()) win.webContents.reload();
+        });
+      }
+    });
   }
 }
 
 function setupAutoUpdater() {
-  logUpdate("setupAutoUpdater called. isPackaged =", app.isPackaged, "version =", app.getVersion());
-
-  if (!app.isPackaged) {
-    logUpdate("skip: app is not packaged (dev mode)");
-    return;
-  }
+  if (!app.isPackaged) return;
 
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = false;
 
-  const prepareUpdateDialog = () => {
+  const sendToRenderer = (channel, payload) => {
     if (!win || win.isDestroyed()) return;
-
     win.setIgnoreMouseEvents(false);
     win.show();
     win.focus();
+    win.webContents.send(channel, payload);
   };
 
-  autoUpdater.on("checking-for-update", () => {
-    console.log("[update] checking...");
-    logUpdate("checking-for-update");
-  });
-
-  autoUpdater.on("update-available", async (info) => {
-    console.log("[update] available:", info.version);
-    logUpdate("update-available", info.version);
-    prepareUpdateDialog();
-
-    const { response } = await dialog.showMessageBox(win, {
-      type: "info",
-      title: "업데이트 발견",
-      message: `새 버전 ${info.version}이 있어요.`,
-      detail: "지금 다운로드할까요?",
-      buttons: ["업데이트", "나중에"],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true,
-    });
-
-    logUpdate("update-available dialog response:", response);
-
-    if (response === 0) {
-      autoUpdater.downloadUpdate();
-    }
-  });
-
-  autoUpdater.on("update-not-available", (info) => {
-    console.log("[update] not available");
-    logUpdate("update-not-available. current version:", app.getVersion(), "info:", info);
+  autoUpdater.on("update-available", (info) => {
+    sendToRenderer("update:available", { version: info.version });
   });
 
   autoUpdater.on("download-progress", (progress) => {
-    console.log("[update] progress:", Math.round(progress.percent));
-    logUpdate("download-progress", Math.round(progress.percent) + "%");
+    if (!win || win.isDestroyed()) return;
+    win.webContents.send("update:progress", { percent: progress.percent });
   });
 
-  autoUpdater.on("update-downloaded", async () => {
-    console.log("[update] downloaded. will install on quit.");
-    logUpdate("update-downloaded");
-    prepareUpdateDialog();
-
-    const { response } = await dialog.showMessageBox(win, {
-      type: "info",
-      title: "업데이트 준비 완료",
-      message: "새 버전이 다운로드됐어요.",
-      detail: "지금 재시작하면 업데이트가 바로 적용돼요.",
-      buttons: ["지금 재시작", "나중에"],
-      defaultId: 0,
-      cancelId: 1,
-      noLink: true,
-    });
-
-    logUpdate("update-downloaded dialog response:", response);
-
-    if (response === 0) {
-      autoUpdater.quitAndInstall();
-    }
+  autoUpdater.on("update-downloaded", (info) => {
+    sendToRenderer("update:downloaded", { version: info?.version || "" });
   });
 
   autoUpdater.on("error", (error) => {
-    console.warn("[update] error:", error);
-    logUpdate("error event:", error);
-    prepareUpdateDialog();
-
-    dialog.showMessageBox(win, {
-      type: "error",
-      title: "업데이트 오류",
-      message: error.message || String(error),
-    });
+    sendToRenderer("update:error", { message: error?.message || String(error) });
   });
 
-  logUpdate("calling checkForUpdates()");
-  autoUpdater.checkForUpdates().catch((e) => {
-    logUpdate("checkForUpdates() threw:", e);
+  // 렌더러(커스텀 모달)에서 사용자 선택을 받음
+  ipcMain.on("update:respond", (_event, action) => {
+    if (action === "download") {
+      autoUpdater.downloadUpdate();
+    } else if (action === "restart") {
+      autoUpdater.quitAndInstall();
+    }
+    // action === "dismiss" 인 경우는 아무 것도 안 함 (모달만 닫힘)
+  });
+
+  autoUpdater.checkForUpdates();
+}
+
+// 개발 모드 전용: Ctrl+Shift+U 로 업데이트 모달을 가짜 데이터로 미리보기
+// (패키징 전이라 실제 autoUpdater는 동작 안 하므로, 모달 디자인만 빠르게 확인할 때 사용)
+function setupDevUpdatePreview() {
+  if (app.isPackaged) return;
+
+  let previewState = "idle";
+
+  globalShortcut.register("CommandOrControl+Shift+U", () => {
+    if (!win || win.isDestroyed()) return;
+    win.setIgnoreMouseEvents(false);
+    win.show();
+    win.focus();
+
+    if (previewState === "idle" || previewState === "downloaded") {
+      previewState = "available";
+      win.webContents.send("update:available", { version: "9.9.9" });
+    } else if (previewState === "available") {
+      previewState = "downloading";
+      let percent = 0;
+      const timer = setInterval(() => {
+        percent += 20;
+        win.webContents.send("update:progress", { percent: Math.min(percent, 100) });
+        if (percent >= 100) {
+          clearInterval(timer);
+          previewState = "downloaded";
+          win.webContents.send("update:downloaded", { version: "9.9.9" });
+        }
+      }, 300);
+    }
   });
 }
-// 어디서든 안 잡힌 에러가 나면 update.log에 남김 (원인 추적용)
-process.on("uncaughtException", (err) => {
-  logUpdate("UNCAUGHT EXCEPTION:", err);
-  console.error("Uncaught:", err);
-});
-process.on("unhandledRejection", (err) => {
-  logUpdate("UNHANDLED REJECTION:", err);
-  console.error("Unhandled rejection:", err);
-});
 
-app
-  .whenReady()
-  .then(() => {
-    console.log("main");
-    logUpdate("app ready. version =", app.getVersion());
-    try {
-      createWindow();
-    } catch (e) {
-      logUpdate("createWindow() threw:", e);
-    }
-    try {
-      setupAutoUpdater();
-    } catch (e) {
-      logUpdate("setupAutoUpdater() threw (sync):", e);
-    }
-  })
-  .catch((e) => {
-    logUpdate("whenReady chain threw:", e);
-  });
-
-// 디버깅용: 업데이트 로그 파일이 있는 폴더를 탐색기/Finder로 열기
-ipcMain.on("open-update-log-folder", () => {
-  shell.showItemInFolder(path.join(app.getPath("userData"), "update.log"));
+app.whenReady().then(() => {
+  createWindow();
+  setupAutoUpdater();
+  setupDevUpdatePreview();
 });
 
 app.on("window-all-closed", () => {

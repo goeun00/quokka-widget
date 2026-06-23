@@ -17,7 +17,6 @@ window.api = {
   getGHHistory: () => ipcRenderer.invoke("gh:getHistory"),
   saveGHHistory: (items) => ipcRenderer.invoke("gh:saveHistory", items),
   openUrl: (u) => ipcRenderer.send("open-url", u),
-  openUpdateLogFolder: () => ipcRenderer.send("open-update-log-folder"),
   quit: () => ipcRenderer.send("quit-app"),
   setIgnoreMouse: (v) => ipcRenderer.send("set-ignore-mouse", v),
   moveWindow: (pos) => ipcRenderer.send("move-window", pos),
@@ -26,4 +25,15 @@ window.api = {
   fetchGHPRs: (baseUrl, token, repos) =>
     ipcRenderer.invoke("gh:fetchPRs", baseUrl, token, repos),
   exportWorkReport: (rows) => ipcRenderer.invoke("export-work-report", rows),
+
+  // 커스텀 업데이트 모달용
+  onUpdateAvailable: (cb) =>
+    ipcRenderer.on("update:available", (_e, info) => cb(info)),
+  onUpdateProgress: (cb) =>
+    ipcRenderer.on("update:progress", (_e, info) => cb(info)),
+  onUpdateDownloaded: (cb) =>
+    ipcRenderer.on("update:downloaded", (_e, info) => cb(info)),
+  onUpdateError: (cb) =>
+    ipcRenderer.on("update:error", (_e, info) => cb(info)),
+  respondUpdate: (action) => ipcRenderer.send("update:respond", action),
 };

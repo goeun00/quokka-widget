@@ -420,7 +420,8 @@ function bindChrome() {
       (el.closest(".dock-frame") ||
         el.closest(".dock-bottom-native") ||
         el.closest(".ctx-menu") ||
-        el.closest(".confirm-overlay"));
+        el.closest(".confirm-overlay") ||
+        el.closest(".update-overlay"));
     window.api?.setIgnoreMouse?.(!interactive);
   });
 
@@ -1559,6 +1560,97 @@ function closeConfirm() {
   $("#confirmOverlay").classList.remove("show");
   confirmOkHandler = null;
 }
+
+/* ══════════════════════════════════════════
+   UPDATE MODAL
+══════════════════════════════════════════ */
+let updateState = "idle"; // idle | available | downloading | downloaded | error
+
+function showUpdateOverlay() {
+  $("#updateOverlay").classList.add("show");
+}
+function hideUpdateOverlay() {
+  $("#updateOverlay").classList.remove("show");
+}
+
+function renderUpdateAvailable(info) {
+  updateState = "available";
+  $("#updateTitle").textContent = `새 버전 ${info?.version || ""}이 있어요`;
+  $("#updateDesc").textContent = "지금 받으면 더 빠르고 안정적으로 쓸 수 있어요.";
+  $("#updateProgress").hidden = true;
+  $("#updateProgressLabel").hidden = true;
+  $("#updateBtns").hidden = false;
+  $("#updateLater").textContent = "나중에";
+  $("#updateLater").hidden = false;
+  $("#updateMain").textContent = "지금 받기";
+  showUpdateOverlay();
+}
+
+function renderUpdateDownloading() {
+  updateState = "downloading";
+  $("#updateTitle").textContent = "업데이트 받는 중이에요";
+  $("#updateDesc").textContent = "잠시만 기다려 주세요, 곧 끝나요!";
+  $("#updateProgress").hidden = false;
+  $("#updateProgressLabel").hidden = false;
+  $("#updateProgressFill").style.width = "0%";
+  $("#updateProgressLabel").textContent = "0%";
+  $("#updateBtns").hidden = true;
+  showUpdateOverlay();
+}
+
+function renderUpdateProgress(info) {
+  if (updateState !== "downloading") renderUpdateDownloading();
+  const pct = Math.max(0, Math.min(100, Math.round(info?.percent || 0)));
+  $("#updateProgressFill").style.width = `${pct}%`;
+  $("#updateProgressLabel").textContent = `${pct}%`;
+}
+
+function renderUpdateDownloaded(info) {
+  updateState = "downloaded";
+  $("#updateTitle").textContent = "업데이트 준비 완료!";
+  $("#updateDesc").textContent = "지금 재시작하면 새 버전이 바로 적용돼요.";
+  $("#updateProgress").hidden = true;
+  $("#updateProgressLabel").hidden = true;
+  $("#updateBtns").hidden = false;
+  $("#updateLater").textContent = "나중에";
+  $("#updateLater").hidden = false;
+  $("#updateMain").textContent = "지금 재시작";
+  showUpdateOverlay();
+}
+
+function renderUpdateError(info) {
+  updateState = "error";
+  $("#updateTitle").textContent = "업데이트 중 문제가 생겼어요";
+  $("#updateDesc").textContent = info?.message || "잠시 후 다시 시도해주세요.";
+  $("#updateProgress").hidden = true;
+  $("#updateProgressLabel").hidden = true;
+  $("#updateBtns").hidden = false;
+  $("#updateLater").hidden = true;
+  $("#updateMain").textContent = "확인";
+  showUpdateOverlay();
+}
+
+$("#updateLater")?.addEventListener("click", () => {
+  window.api?.respondUpdate?.("dismiss");
+  hideUpdateOverlay();
+});
+
+$("#updateMain")?.addEventListener("click", () => {
+  if (updateState === "available") {
+    window.api?.respondUpdate?.("download");
+    renderUpdateDownloading();
+  } else if (updateState === "downloaded") {
+    window.api?.respondUpdate?.("restart");
+  } else {
+    // error 상태에서 '확인' 누르면 그냥 닫기
+    hideUpdateOverlay();
+  }
+});
+
+window.api?.onUpdateAvailable?.((info) => renderUpdateAvailable(info));
+window.api?.onUpdateProgress?.((info) => renderUpdateProgress(info));
+window.api?.onUpdateDownloaded?.((info) => renderUpdateDownloaded(info));
+window.api?.onUpdateError?.((info) => renderUpdateError(info));
 
 boot().catch((e) => {
   console.error(e);

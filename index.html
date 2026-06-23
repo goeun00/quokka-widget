@@ -11,7 +11,12 @@
       <div class="ctx-item danger" id="ctxQuit">✕ 종료</div>
     </div>
 
-    <div class="confirm-overlay" id="confirmOverlay">
+
+
+
+    <main class="app-shell">
+      <section class="dock-frame" id="dockFrame">
+            <div class="confirm-overlay" id="confirmOverlay">
       <div class="confirm-box">
         <div class="confirm-msg" id="confirmMsg">삭제하시겠어요?</div>
         <div class="confirm-btns">
@@ -25,8 +30,28 @@
       </div>
     </div>
 
-    <main class="app-shell">
-      <section class="dock-frame" id="dockFrame">
+    <div class="update-overlay" id="updateOverlay">
+      <div class="confirm-box">
+        <div class="confirm-msg" id="updateTitle">새 버전이 있어요</div>
+        <div class="update-desc" id="updateDesc">
+          지금 받으면 더 빠르고 안정적으로 쓸 수 있어요.
+        </div>
+        <div class="logwork-track update-progress" id="updateProgress" hidden>
+          <div class="logwork-fill" id="updateProgressFill" style="width: 0%"></div>
+        </div>
+        <div class="update-progress-label" id="updateProgressLabel" hidden>
+          0%
+        </div>
+        <div class="confirm-btns" id="updateBtns">
+          <button class="confirm-btn cancel" id="updateLater" type="button">
+            나중에
+          </button>
+          <button class="confirm-btn primary" id="updateMain" type="button">
+            지금 받기
+          </button>
+        </div>
+      </div>
+    </div>
         <section class="dock-panel">
           <header class="dock-header">
             <div class="avatar" id="avatarBtn" aria-label="profile">
